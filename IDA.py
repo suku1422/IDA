@@ -4,7 +4,7 @@ import os
 
 # Secure way to use API key (Recommended)
 api_key = os.getenv("OPENAI_API_KEY")
-client = openai.Client(api_key=api_key)
+client = openai.OpenAI(api_key=api_key)
 
 st.title("Instructional Design Agent")
 
