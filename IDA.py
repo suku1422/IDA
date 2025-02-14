@@ -53,8 +53,7 @@ if st.button("Next") and user_response:
     st.session_state.conversation_history.append({"role": "assistant", "content": next_message})
     
     # Check if AI decides that enough information is collected
-    if "I have enough details" in next_message:
-        st.session_state.conversation_complete = True
+    st.session_state.conversation_complete = True
     
     # Refresh the page to update the conversation and clear input
     st.rerun()
@@ -64,7 +63,7 @@ if st.session_state.conversation_complete:
     st.write("Thanks for sharing all that info! Here’s a structured summary:")
     
     summary_prompt = """
-    Based on the conversation so far, summarize the key details about the instructional design context in a tabular format.
+    Based on the conversation so far, summarize the key details about the instructional design context in a structured way.
     {}
     """.format(str(st.session_state.responses))
 
@@ -106,7 +105,7 @@ if st.session_state.conversation_complete:
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You are an instructional design assistant. Identify gaps in the content compared to the course summary."},
+                {"role": "system", "content": "You are an instructional design assistant. Also assume the role of a compassionate expert in the field identified from the conversation history. Identify gaps in the content compared to the course summary."},
                 {"role": "user", "content": gap_prompt}
             ]
         )
@@ -152,7 +151,7 @@ if st.session_state.conversation_complete:
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
-                    {"role": "system", "content": "You are an expert instructional designer. Also assume the role of a compassionate content expert based on the context information collected till now. Generate a structured content outline."},
+                    {"role": "system", "content": "You are an expert instructional designer. Generate a structured content outline."},
                     {"role": "user", "content": outline_prompt}
                 ]
             )
