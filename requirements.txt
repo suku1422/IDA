@@ -1,7 +1,7 @@
 openai
 streamlit
 pdfplumber
-PyPDF2
 python-docx
 pandas
 pptx
+PyMuPDF
