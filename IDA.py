@@ -85,16 +85,16 @@ if st.session_state.conversation_complete:
                     text = page.extract_text()
                     if text:
                         raw_text += text + "\n"
-            elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
                 doc = docx.Document(uploaded_file)
                 for para in doc.paragraphs:
                     raw_text += para.text + "\n"
-            elif uploaded_file.type == "text/plain":
+        elif uploaded_file.type == "text/plain":
                 raw_text += uploaded_file.read().decode("utf-8") + "\n"
-            elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+        elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
                 df = pd.read_excel(uploaded_file)
                 raw_text += df.to_string() + "\n"
-            elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+        elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.presentationml.presentation":
                 ppt = pptx.Presentation(uploaded_file)
                 for slide in ppt.slides:
                     for shape in slide.shapes:
