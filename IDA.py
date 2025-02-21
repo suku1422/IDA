@@ -1,7 +1,7 @@
 import openai
 import streamlit as st
 import os
-from PyPDF2 import PdfReader
+import pdfplumber
 import docx
 import pandas as pd
 import pptx
@@ -79,11 +79,12 @@ if st.session_state.conversation_complete:
         uploaded_files = st.file_uploader("Upload your course material (PDF, DOCX, TXT, XLSX, PPTX)", accept_multiple_files=True)
     
         raw_text = ""
-        for uploaded_file in uploaded_files:
-            if uploaded_file.type == "application/pdf":
-                pdf_reader = PdfReader(uploaded_file)
-                for page in pdf_reader.pages:
-                    raw_text += page.extract_text() + "\n"
+        if uploaded_file.type == "application/pdf":
+            with pdfplumber.open(uploaded_file) as pdf:
+                for page in pdf.pages:
+                    text = page.extract_text()
+                    if text:
+                        raw_text += text + "\n"
             elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
                 doc = docx.Document(uploaded_file)
                 for para in doc.paragraphs:
