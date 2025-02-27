@@ -38,9 +38,9 @@ def get_openai_response(prompt, temperature=0.5, max_tokens=1500):
             stop=None  # Define stop sequences if needed
         )
         return response.choices[0].message['content'].strip()
-    except openai.error.OpenAIError as e:
-        st.error(f"OpenAI API returned an error: {e}")
-        return None
+#    except openai.error.OpenAIError as e:
+#        st.error(f"OpenAI API returned an error: {e}")
+#        return None
     except Exception as e:
         st.error(f"An unexpected error occurred: {e}")
         return None
