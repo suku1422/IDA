@@ -119,7 +119,7 @@ def summarize_context():
 def analyze_content():
     st.header("Step 2: Analyze Raw Content")
 
-    if st.session_state.raw_content:
+    if st.session_state.raw_contents:
         # Read the raw content
         raw_text = ""
         try:
