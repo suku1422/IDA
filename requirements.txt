@@ -1,5 +1,5 @@
 streamlit
-openai
+openai==1.64.0
 pdfplumber
 python-docx
 pandas
