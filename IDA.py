@@ -1,6 +1,5 @@
 ### **Script: `instructional_design_agent.py`**
 
-```python
 import streamlit as st
 import openai
 import pandas as pd
@@ -262,4 +261,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
