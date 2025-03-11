@@ -239,7 +239,7 @@ def generate_storyboard():
         f"The **Onscreen Text** should contain key points that help convey the message of the slide, and not just slide title. **Voice Over Script** should contain the entire narrative voice over covering the content that will be explained in the slide. Ensure a consistent flow, organize information into interactivities where necessary, and include knowledge checks after every logical chunk of content coverage."
     )
 
-    storyboard = get_openai_response(prompt, max_tokens=8000)
+    storyboard = get_openai_response(prompt, max_completion_tokens=20000)
     if storyboard:
         st.session_state.storyboard = storyboard
         st.write("### Generated Storyboard:")
