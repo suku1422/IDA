@@ -33,7 +33,7 @@ def get_openai_response(prompt, temperature=0.5, max_tokens=1500):
                 {"role": "user", "content": prompt}
             ],
             temperature=temperature,
-            max_tokens=max_tokens,
+            max_completion_tokens=max_completion_tokens,
             n=1,  # Number of responses to generate
             stop=None  # Define stop sequences if needed
         )
