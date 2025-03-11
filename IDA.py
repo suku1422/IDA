@@ -241,7 +241,9 @@ def generate_storyboard():
         f"**Additional Information:** {st.session_state.context.get('additional_info')}\n\n"
         f"Strictly format the storyboard as a table with three columns: **Onscreen Text**, **Voice Over Script**, **Visualization Guidelines**."
         f"Make sure that the **Onscreen Text** column in the table is NOT the slide title, but should contain key points that help convey the message of the slide. The **Voice Over Script** column should contain the entire narrative voice over covering the content that will be explained in the slide. Give higher priority to user uploaded raw content. Don't make it too generic and keep it focused. Ensure a consistent flow, organize information into interactivities where necessary, and include knowledge checks after every logical chunk of content coverage."
-    )
+          "\n\nIMPORTANT: Provide the storyboard strictly as a CSV formatted table with exactly three columns: "
+          "'Onscreen Text','Voice Over Script','Visualization Guidelines'."
+        )
 
     storyboard = get_openai_response(prompt, max_completion_tokens=20000)
     if storyboard:
@@ -249,15 +251,12 @@ def generate_storyboard():
         st.write("### Generated Storyboard:")
 
         try:
-            story_table = storyboard.strip()
-            story_table = '\n'.join([line.strip().strip('|') for line in story_table.splitlines() if '---' not in line])
-            df_storyboard = pd.read_csv(io.StringIO(story_table), sep="|")
-            df_storyboard.columns = [col.strip() for col in df_storyboard.columns]
-            df_storyboard = df_storyboard.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+            df_storyboard = pd.read_csv(io.StringIO(storyboard))
             st.dataframe(df_storyboard)
         except Exception as e:
-            st.error(f"Failed to parse storyboard table: {e}")
-            st.markdown(storyboard)
+            st.error(f"Parsing failed: {e}")
+            st.write("Raw CSV output below:")
+            st.code(storyboard)
 
         cols = st.columns(2)
         with cols[0]:
