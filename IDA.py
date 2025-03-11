@@ -50,7 +50,6 @@ def get_openai_response(prompt, max_completion_tokens=1500):
 def gather_context():
     st.header("Step 1: Gather Course Information")
 
-    # Define questions based on step
     questions = [
         ("topic", "What is the topic of the e-learning course?"),
         ("audience_profile", "Can you describe the audience profile for this course?"),
@@ -66,22 +65,22 @@ def gather_context():
 
     if st.session_state.current_question < len(questions):
         key, question = questions[st.session_state.current_question]
+
         with st.form(key=f"form_{key}"):
-            if key == "raw_content_available":
+            if key in ["raw_content_available", "graded_assessment"]:
                 user_input = st.radio(question, options=["Yes", "No"], key=key)
-            elif key == "graded_assessment":
-            user_input = st.radio(question, options=["Yes", "No"], key=key)
             else:
-            user_input = st.text_input(question, key=key)
-        
-            if st.button("Submit", key=f"submit_{key}"):
-                if user_input:
-                    st.session_state.context[key] = user_input
-                    st.session_state.current_question += 1
-                else:
-                    st.warning("Please provide an answer before proceeding.")
+                user_input = st.text_input(question, key=key)
+
+            submitted = st.form_submit_button("Submit")
+
+        if submitted:
+            if user_input:
+                st.session_state.context[key] = user_input
+                st.session_state.current_question += 1
+            else:
+                st.warning("Please provide an answer before proceeding.")
     else:
-        # Check if raw content is available
         if st.session_state.context.get("raw_content_available", "").lower() == "yes":
             upload_raw_content()
         else:
@@ -205,22 +204,25 @@ def generate_outline():
         f"**Graded Final Assessment:** {st.session_state.context.get('graded_assessment')}\n"
         f"**Additional Information:** {st.session_state.context.get('additional_info')}\n\n"
     )
+
     if st.session_state.raw_content:
         prompt += "Ensure that the content outline heavily incorporates the provided raw content.\n"
 
-    outline = get_openai_response(prompt)
-    if outline:
-        st.session_state.content_outline = outline
-        st.write("### Generated Content Outline:")
-        st.write(outline)
+    if st.session_state.content_outline is None:
+        outline = get_openai_response(prompt)
+        if outline:
+            st.session_state.content_outline = outline
 
-        cols = st.columns(2)
-        with cols[0]:
-            if st.button("Approve Outline and Continue"):
-                st.session_state.step = 4
-        with cols[1]:
-            if st.button("Modify Outline"):
-                st.warning("Modification functionality not implemented in this prototype.")
+    st.write("### Generated Content Outline:")
+    st.write(st.session_state.content_outline)
+
+    cols = st.columns(2)
+    with cols[0]:
+        if st.button("Approve Outline and Continue"):
+            st.session_state.step = 4
+    with cols[1]:
+        if st.button("Modify Outline"):
+            st.warning("Modification functionality not implemented in this prototype.")
                 # Implement modification logic as needed
 
 # Step 4: Generate Storyboard
@@ -245,9 +247,17 @@ def generate_storyboard():
     if storyboard:
         st.session_state.storyboard = storyboard
         st.write("### Generated Storyboard:")
-        st.markdown("```")
-        st.write(storyboard)
-        st.markdown("```")
+
+        try:
+            story_table = storyboard.strip()
+            story_table = '\n'.join([line.strip().strip('|') for line in story_table.splitlines() if '---' not in line])
+            df_storyboard = pd.read_csv(io.StringIO(story_table), sep="|")
+            df_storyboard.columns = [col.strip() for col in df_storyboard.columns]
+            df_storyboard = df_storyboard.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+            st.dataframe(df_storyboard)
+        except Exception as e:
+            st.error(f"Failed to parse storyboard table: {e}")
+            st.markdown(storyboard)
 
         cols = st.columns(2)
         with cols[0]:
@@ -256,7 +266,6 @@ def generate_storyboard():
         with cols[1]:
             if st.button("Modify Storyboard"):
                 st.warning("Modification functionality not implemented in this prototype.")
-                # Implement modification logic as needed
 
 # Step 5: Create Final Assessment
 def create_final_assessment():
