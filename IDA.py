@@ -235,8 +235,8 @@ def generate_storyboard():
         f"**Duration:** {st.session_state.context.get('duration')}\n"
         f"**Graded Final Assessment:** {st.session_state.context.get('graded_assessment')}\n"
         f"**Additional Information:** {st.session_state.context.get('additional_info')}\n\n"
-        f"Format the storyboard as a table with three columns: **Onscreen Text**, **Visualization Guidelines**, **Voice Over Script**. "
-        f"Ensure a consistent flow, organize information into interactivities where necessary, and include knowledge checks after every logical chunk of content coverage."
+        f"Format the storyboard as a table with three columns: **Onscreen Text**, **Voice Over Script**, **Visualization Guidelines**."
+        f"The **Onscreen Text** should contain key points that help convey the message of the slide, and not just slide title. **Voice Over Script** should contain the entire narrative voice over covering the content that will be explained in the slide. Ensure a consistent flow, organize information into interactivities where necessary, and include knowledge checks after every logical chunk of content coverage."
     )
 
     storyboard = get_openai_response(prompt, max_tokens=2000)
