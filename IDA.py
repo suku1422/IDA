@@ -2,6 +2,7 @@ import streamlit as st
 import openai
 import pandas as pd
 import os
+import io
 
 # Set your OpenAI API key securely
 # It's recommended to use environment variables or Streamlit secrets for API keys
@@ -65,6 +66,7 @@ def gather_context():
 
     if st.session_state.current_question < len(questions):
         key, question = questions[st.session_state.current_question]
+        with st.form(key=f"form_{key}"):
         if key == "raw_content_available":
             user_input = st.radio(question, options=["Yes", "No"], key=key)
         elif key == "graded_assessment":
