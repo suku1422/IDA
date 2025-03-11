@@ -25,7 +25,7 @@ if 'final_assessment' not in st.session_state:
     st.session_state.final_assessment = None
 
 # Function to call OpenAI API
-def get_openai_response(prompt, temperature=0.5, max_tokens=1500):
+def get_openai_response(prompt, max_completion_tokens=1500):
     try:
         response = openai.ChatCompletion.create(
             model="o3-mini-2025-01-31",  # Ensure you have access to GPT-4 or use "gpt-3.5-turbo"
@@ -33,7 +33,6 @@ def get_openai_response(prompt, temperature=0.5, max_tokens=1500):
                 {"role": "system", "content": "You are a professional instructional design assistant."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=temperature,
             max_completion_tokens=max_completion_tokens,
             n=1,  # Number of responses to generate
             stop=None  # Define stop sequences if needed
