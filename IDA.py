@@ -6,6 +6,7 @@ import os
 # Set your OpenAI API key securely
 # It's recommended to use environment variables or Streamlit secrets for API keys
 openai.api_key = os.getenv("OPENAI_API_KEY")  # Ensure you set this environment variable
+max_completion_tokens=10000
 
 # Initialize session state variables
 if 'step' not in st.session_state:
