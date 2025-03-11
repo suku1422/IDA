@@ -28,7 +28,7 @@ if 'final_assessment' not in st.session_state:
 def get_openai_response(prompt, max_completion_tokens=1500):
     try:
         response = openai.ChatCompletion.create(
-            model="o3-mini",  # Ensure you have access to GPT-4 or use "gpt-3.5-turbo"
+            model="o1",  # Ensure you have access to GPT-4 or use "gpt-3.5-turbo"
             messages=[
                 {"role": "system", "content": "You are a professional instructional design assistant."},
                 {"role": "user", "content": prompt}
