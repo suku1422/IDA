@@ -28,7 +28,7 @@ if 'final_assessment' not in st.session_state:
 def get_openai_response(prompt, max_completion_tokens=1500):
     try:
         response = openai.ChatCompletion.create(
-            model="o3-mini-2025-01-31",  # Ensure you have access to GPT-4 or use "gpt-3.5-turbo"
+            model="o3-mini",  # Ensure you have access to GPT-4 or use "gpt-3.5-turbo"
             messages=[
                 {"role": "system", "content": "You are a professional instructional design assistant."},
                 {"role": "user", "content": prompt}
@@ -236,7 +236,7 @@ def generate_storyboard():
         f"**Graded Final Assessment:** {st.session_state.context.get('graded_assessment')}\n"
         f"**Additional Information:** {st.session_state.context.get('additional_info')}\n\n"
         f"Strictly format the storyboard as a table with three columns: **Onscreen Text**, **Voice Over Script**, **Visualization Guidelines**."
-        f"Make sure that the **Onscreen Text** column in the table is NOT the slide title, but should contain key points that help convey the message of the slide. The **Voice Over Script** column should contain the entire narrative voice over covering the content that will be explained in the slide. Ensure a consistent flow, organize information into interactivities where necessary, and include knowledge checks after every logical chunk of content coverage."
+        f"Make sure that the **Onscreen Text** column in the table is NOT the slide title, but should contain key points that help convey the message of the slide. The **Voice Over Script** column should contain the entire narrative voice over covering the content that will be explained in the slide. Give higher priority to user uploaded raw content. Don't make it too generic and keep it focused. Ensure a consistent flow, organize information into interactivities where necessary, and include knowledge checks after every logical chunk of content coverage."
     )
 
     storyboard = get_openai_response(prompt, max_completion_tokens=20000)
