@@ -67,19 +67,19 @@ def gather_context():
     if st.session_state.current_question < len(questions):
         key, question = questions[st.session_state.current_question]
         with st.form(key=f"form_{key}"):
-        if key == "raw_content_available":
+            if key == "raw_content_available":
+                user_input = st.radio(question, options=["Yes", "No"], key=key)
+            elif key == "graded_assessment":
             user_input = st.radio(question, options=["Yes", "No"], key=key)
-        elif key == "graded_assessment":
-            user_input = st.radio(question, options=["Yes", "No"], key=key)
-        else:
+            else:
             user_input = st.text_input(question, key=key)
         
-        if st.button("Submit", key=f"submit_{key}"):
-            if user_input:
-                st.session_state.context[key] = user_input
-                st.session_state.current_question += 1
-            else:
-                st.warning("Please provide an answer before proceeding.")
+            if st.button("Submit", key=f"submit_{key}"):
+                if user_input:
+                    st.session_state.context[key] = user_input
+                    st.session_state.current_question += 1
+                else:
+                    st.warning("Please provide an answer before proceeding.")
     else:
         # Check if raw content is available
         if st.session_state.context.get("raw_content_available", "").lower() == "yes":
