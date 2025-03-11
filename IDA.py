@@ -27,7 +27,7 @@ if 'final_assessment' not in st.session_state:
 def get_openai_response(prompt, temperature=0.5, max_tokens=1500):
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4",  # Ensure you have access to GPT-4 or use "gpt-3.5-turbo"
+            model="o3-mini-2025-01-31",  # Ensure you have access to GPT-4 or use "gpt-3.5-turbo"
             messages=[
                 {"role": "system", "content": "You are a professional instructional design assistant."},
                 {"role": "user", "content": prompt}
@@ -239,7 +239,7 @@ def generate_storyboard():
         f"The **Onscreen Text** should contain key points that help convey the message of the slide, and not just slide title. **Voice Over Script** should contain the entire narrative voice over covering the content that will be explained in the slide. Ensure a consistent flow, organize information into interactivities where necessary, and include knowledge checks after every logical chunk of content coverage."
     )
 
-    storyboard = get_openai_response(prompt, max_tokens=2000)
+    storyboard = get_openai_response(prompt, max_tokens=8000)
     if storyboard:
         st.session_state.storyboard = storyboard
         st.write("### Generated Storyboard:")
