@@ -50,44 +50,50 @@ def get_openai_response(prompt, max_completion_tokens=3500):
 def gather_context():
     st.header("Step 1: Gather Course Information")
 
+    # Step 1: Encouraging greeting
+    if "greeted" not in st.session_state:
+        st.session_state.greeted = False
+
+    if not st.session_state.greeted:
+        st.write("👋 **Welcome!** How're you doing today? Seems like you are looking to create an e-learning course. Let's work together on it!")
+        st.session_state.greeted = True
+
+    # Step 2: Initialize session variables
     if "context" not in st.session_state:
         st.session_state.context = {}
 
     if "conversation_history" not in st.session_state:
         st.session_state.conversation_history = [
             {"role": "system", "content": (
-                "You are an Instructional Design Assistant. Your goal is to collect all the essential details such as the topic, audience profile (like age profile, education and experience), key learning outcomes, mode of learning (instructor lead or self paced), duration of the course, whether the user has raw content for the course, and any other information the user has about the context, required to design an "
-                "e-learning course. Ask one question at a time. After receiving a response, analyze whether the answer is complete. "
-                "If further clarification or follow-up questions are needed, ask them before moving to the next key topic. "
-                "Ensure the conversation is engaging, but always focused on collecting the required information."
+                "You are an instructional design assistant. Your goal is to collect all essential details such as the topic, audience profile (like age profile, education and experience), key learning outcomes, mode of learning (instructor lead or self paced), duration of the course, whether the user has raw content for the course, and any other information the user has about the context, required to design an e-learning course. "
+                "Ask one question at a time. If the response needs clarification, ask a follow-up. "
+                "Once the answer is sufficient, move to the next key topic. Keep the conversation smooth and engaging."
             )}
         ]
 
     if "current_question" not in st.session_state:
-        st.session_state.current_question = "What is the topic of the e-learning course?"
+        st.session_state.current_question = "What is the topic of your e-learning course?"
 
     if "user_response" not in st.session_state:
-        st.session_state.user_response = ""  # Initialize empty response storage
+        st.session_state.user_response = ""
 
+    # Step 3: Display current question & capture response
     st.write(f"**{st.session_state.current_question}**")
     user_input = st.text_input("Your Response:", value=st.session_state.user_response, key="user_input")
 
     if st.button("Submit"):
         if user_input.strip():
-            # Store response in session state
+            # Step 4: Store user response
             st.session_state.context[st.session_state.current_question] = user_input
             st.session_state.conversation_history.append({"role": "user", "content": user_input})
 
-            # Prompt LLM to assess response and determine next question
+            # Step 5: Get next question dynamically
             prompt = (
                 "Here is the conversation so far:\n"
                 + "\n".join([f"{msg['role']}: {msg['content']}" for msg in st.session_state.conversation_history])
-                + "\n\nBased on the information provided, do the following:\n"
-                "1. Assess whether the last response is complete and sufficient.\n"
-                "2. If additional clarification is needed, ask a follow-up question.\n"
-                "3. If the response is clear, move on to the next most relevant question.\n"
-                "4. Ensure that all key course details (topic, audience, learning objectives, mode, duration, additional details) are covered naturally.\n"
-                "5. Only ask one structured question at a time, ensuring a smooth conversation flow."
+                + "\n\nBased on the information collected so far, determine the next most relevant question. "
+                "If additional clarification is needed, ask a follow-up without over-explaining why it's needed. "
+                "Otherwise, move on to the next key detail. Keep responses concise and natural."
             )
 
             next_question = get_openai_response(prompt)
@@ -98,17 +104,18 @@ def gather_context():
             else:
                 st.session_state.current_question = "Thank you! You have provided all the necessary information."
 
-            # Clear input field explicitly
-            st.session_state.user_response = ""
-            st.rerun()
+            # Step 6: Clear input box before rerunning
+            st.session_state.user_response = ""  # Reset input field
+            st.rerun()  # Ensures a complete refresh, making the input box clear
 
         else:
             st.warning("Please provide an answer before proceeding.")
 
-    # Allow review when enough details are gathered
+    # Step 7: Allow user to review once enough details are collected
     if len(st.session_state.context) >= 5:
         if st.button("Review and Approve Context"):
             summarize_context()
+
 
 def upload_raw_content():
     st.header("Upload Raw Content")
