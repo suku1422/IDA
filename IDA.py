@@ -50,52 +50,44 @@ def get_openai_response(prompt, max_completion_tokens=3500):
 def gather_context():
     st.header("Step 1: Gather Course Information")
 
-    required_fields = {
-        "topic": "What is the topic of the e-learning course?",
-        "audience": "Who is the target audience? Please mention age group, educational background, and experience level.",
-        "learning_outcomes": "What are the key learning outcomes you want to achieve?",
-        "training_mode": "Will this be an instructor-led or self-paced course?",
-        "duration": "What is the expected duration of the course?",
-        "additional_info": "Is there any other important information you would like to provide?"
-    }
-
     if "context" not in st.session_state:
         st.session_state.context = {}
 
     if "conversation_history" not in st.session_state:
         st.session_state.conversation_history = [
-            {"role": "system", "content": "You are an instructional design assistant. Ask the user one question at a time to gather essential course information. Ensure all key details are covered, while keeping the conversation natural and engaging."}
+            {"role": "system", "content": (
+                "You are an Instructional Design Assistant. Your goal is to collect all the essential details such as the topic, audience profile (like age profile, education and experience), key learning outcomes, mode of learning (instructor lead or self paced), duration of the course, whether the user has raw content for the course, and any other information the user has about the context, required to design an "
+                "e-learning course. Ask one question at a time. After receiving a response, analyze whether the answer is complete. "
+                "If further clarification or follow-up questions are needed, ask them before moving to the next key topic. "
+                "Ensure the conversation is engaging, but always focused on collecting the required information."
+            )}
         ]
 
-    # Find the next missing field to ask about
-    next_question_key = None
-    for key, question in required_fields.items():
-        if key not in st.session_state.context:
-            next_question_key = key
-            break
+    if "current_question" not in st.session_state:
+        st.session_state.current_question = "What is the topic of the e-learning course?"
 
-    if next_question_key:
-        st.session_state.current_question = required_fields[next_question_key]
-    else:
-        st.session_state.current_question = "Thank you! You have provided all the necessary information."
+    if "user_response" not in st.session_state:
+        st.session_state.user_response = ""  # Initialize empty response storage
 
     st.write(f"**{st.session_state.current_question}**")
-    user_input = st.text_input("Your Response:", key="context_input")
+    user_input = st.text_input("Your Response:", value=st.session_state.user_response, key="user_input")
 
     if st.button("Submit"):
         if user_input.strip():
-            # Store user response
-            st.session_state.context[next_question_key] = user_input
-
-            # Update conversation history
+            # Store response in session state
+            st.session_state.context[st.session_state.current_question] = user_input
             st.session_state.conversation_history.append({"role": "user", "content": user_input})
 
-            # Generate next question dynamically based on what has been collected
+            # Prompt LLM to assess response and determine next question
             prompt = (
                 "Here is the conversation so far:\n"
                 + "\n".join([f"{msg['role']}: {msg['content']}" for msg in st.session_state.conversation_history])
-                + "\n\nBased on the information collected, what is the best way to phrase the next question to ensure all essential instructional design details are gathered?"
-                " If follow-ups are needed for clarity, ask them. Otherwise, move to the next key topic. Ensure only one structured question is asked at a time."
+                + "\n\nBased on the information provided, do the following:\n"
+                "1. Assess whether the last response is complete and sufficient.\n"
+                "2. If additional clarification is needed, ask a follow-up question.\n"
+                "3. If the response is clear, move on to the next most relevant question.\n"
+                "4. Ensure that all key course details (topic, audience, learning objectives, mode, duration, additional details) are covered naturally.\n"
+                "5. Only ask one structured question at a time, ensuring a smooth conversation flow."
             )
 
             next_question = get_openai_response(prompt)
@@ -106,14 +98,17 @@ def gather_context():
             else:
                 st.session_state.current_question = "Thank you! You have provided all the necessary information."
 
+            # Clear input field explicitly
+            st.session_state.user_response = ""
+            st.rerun()
+
         else:
             st.warning("Please provide an answer before proceeding.")
 
-    # Once all key fields are gathered, allow the user to review
-    if len(st.session_state.context) == len(required_fields):
+    # Allow review when enough details are gathered
+    if len(st.session_state.context) >= 5:
         if st.button("Review and Approve Context"):
             summarize_context()
-
 
 def upload_raw_content():
     st.header("Upload Raw Content")
