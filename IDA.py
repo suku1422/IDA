@@ -74,20 +74,18 @@ def gather_context():
     if "current_question" not in st.session_state:
         st.session_state.current_question = "What is the topic of your e-learning course?"
 
-    if "user_response" not in st.session_state:
-        st.session_state.user_response = ""
+    # Text input field (kept simple)
+    st.text_input("Your Response:", key="user_input")
 
-    # Step 3: Display current question & capture response
-    st.write(f"**{st.session_state.current_question}**")
-    user_input = st.text_input("Your Response:", value=st.session_state.user_response, key="user_input")
-
+    # Submit button
     if st.button("Submit"):
+        user_input = st.session_state.user_input
         if user_input.strip():
-            # Step 4: Store user response
+            # Store user response in context
             st.session_state.context[st.session_state.current_question] = user_input
             st.session_state.conversation_history.append({"role": "user", "content": user_input})
 
-            # Step 5: Get next question dynamically
+            # Prompt to get next question from OpenAI
             prompt = (
                 "Here is the conversation so far:\n"
                 + "\n".join([f"{msg['role']}: {msg['content']}" for msg in st.session_state.conversation_history])
@@ -104,17 +102,20 @@ def gather_context():
             else:
                 st.session_state.current_question = "Thank you! You have provided all the necessary information."
 
-            # Step 6: Clear input box before rerunning
-            st.session_state.user_response = ""  # Reset input field
-            st.rerun()  # Ensures a complete refresh, making the input box clear
-
+            # Reset input field and rerun
+            st.session_state.user_input = ""
+            st.rerun()
         else:
             st.warning("Please provide an answer before proceeding.")
+
+    # Show the current question
+    st.write(f"**{st.session_state.current_question}**")
 
     # Step 7: Allow user to review once enough details are collected
     if len(st.session_state.context) >= 5:
         if st.button("Review and Approve Context"):
             summarize_context()
+
 
 
 def upload_raw_content():
