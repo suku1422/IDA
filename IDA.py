@@ -50,7 +50,6 @@ def get_openai_response(prompt, max_completion_tokens=3500):
 def gather_context():
     st.header("Step 1: Gather Course Information")
 
-    # Step 1: Encouraging greeting
     if "greeted" not in st.session_state:
         st.session_state.greeted = False
 
@@ -58,7 +57,6 @@ def gather_context():
         st.write("👋 **Welcome!** How're you doing today? Seems like you are looking to create an e-learning course. Let's work together on it!")
         st.session_state.greeted = True
 
-    # Step 2: Initialize session variables
     if "context" not in st.session_state:
         st.session_state.context = {}
 
@@ -74,12 +72,14 @@ def gather_context():
     if "current_question" not in st.session_state:
         st.session_state.current_question = "What is the topic of your e-learning course?"
 
-    # Text input field (kept simple)
-    st.text_input("Your Response:", key="user_input")
+    # Show the current question
+    st.write(f"**{st.session_state.current_question}**")
+
+    # Text input field
+    user_input = st.text_input("Your Response:", key="user_input")
 
     # Submit button
     if st.button("Submit"):
-        user_input = st.session_state.user_input
         if user_input.strip():
             # Store user response in context
             st.session_state.context[st.session_state.current_question] = user_input
@@ -102,19 +102,16 @@ def gather_context():
             else:
                 st.session_state.current_question = "Thank you! You have provided all the necessary information."
 
-            # Reset input field and rerun
-            st.session_state.user_input = ""
+            # Trigger rerun to clear the input field
             st.rerun()
         else:
             st.warning("Please provide an answer before proceeding.")
 
-    # Show the current question
-    st.write(f"**{st.session_state.current_question}**")
-
-    # Step 7: Allow user to review once enough details are collected
+    # Show context review button if enough info is collected
     if len(st.session_state.context) >= 5:
         if st.button("Review and Approve Context"):
             summarize_context()
+
 
 
 
