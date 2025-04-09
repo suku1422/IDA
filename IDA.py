@@ -52,14 +52,12 @@ def gather_context():
 
     if "greeted" not in st.session_state:
         st.session_state.greeted = False
-
     if not st.session_state.greeted:
         st.write("👋 **Welcome!** How're you doing today? Seems like you are looking to create an e-learning course. Let's work together on it!")
         st.session_state.greeted = True
 
     if "context" not in st.session_state:
         st.session_state.context = {}
-
     if "conversation_history" not in st.session_state:
         st.session_state.conversation_history = [
             {"role": "system", "content": (
@@ -68,49 +66,60 @@ def gather_context():
                 "Once the answer is sufficient, move to the next key topic. Keep the conversation smooth and engaging."
             )}
         ]
-
     if "current_question" not in st.session_state:
         st.session_state.current_question = "What is the topic of your e-learning course?"
+    if "question_count" not in st.session_state:
+        st.session_state.question_count = 0
+    if "context_complete" not in st.session_state:
+        st.session_state.context_complete = False
 
     # Show the current question
-    st.write(f"**{st.session_state.current_question}**")
+    if not st.session_state.context_complete:
+        st.write(f"**{st.session_state.current_question}**")
 
-    # Text input field
-    user_input = st.text_input("Your Response:", key="user_input")
+        # Generate a unique key for input box to force re-render
+        input_key = f"user_input_{len(st.session_state.conversation_history)}"
+        user_input = st.text_input("Your Response:", key=input_key)
 
-    # Submit button
-    if st.button("Submit"):
-        if user_input.strip():
-            # Store user response in context
-            st.session_state.context[st.session_state.current_question] = user_input
-            st.session_state.conversation_history.append({"role": "user", "content": user_input})
+        if st.button("Submit"):
+            if user_input.strip():
+                st.session_state.context[st.session_state.current_question] = user_input
+                st.session_state.conversation_history.append({"role": "user", "content": user_input})
+                st.session_state.question_count += 1
 
-            # Prompt to get next question from OpenAI
-            prompt = (
-                "Here is the conversation so far:\n"
-                + "\n".join([f"{msg['role']}: {msg['content']}" for msg in st.session_state.conversation_history])
-                + "\n\nBased on the information collected so far, determine the next most relevant question. "
-                "If additional clarification is needed, ask a follow-up without over-explaining why it's needed. "
-                "Otherwise, move on to the next key detail. Keep responses concise and natural."
-            )
+                # Stop if we hit the max question count
+                if st.session_state.question_count >= 6:
+                    st.session_state.context_complete = True
+                    st.experimental_rerun()
 
-            next_question = get_openai_response(prompt)
+                else:
+                    # Generate next question from OpenAI
+                    prompt = (
+                        "Here is the conversation so far:\n"
+                        + "\n".join([f"{msg['role']}: {msg['content']}" for msg in st.session_state.conversation_history])
+                        + "\n\nBased on the context gathered, ask the next most relevant question needed to design the course. "
+                        "There is a limit of 6 questions, so prioritize the most important ones."
+                    )
 
-            if next_question:
-                st.session_state.current_question = next_question
-                st.session_state.conversation_history.append({"role": "assistant", "content": next_question})
+                    next_question = get_openai_response(prompt)
+
+                    if next_question:
+                        st.session_state.current_question = next_question
+                        st.session_state.conversation_history.append({"role": "assistant", "content": next_question})
+                    else:
+                        st.session_state.current_question = "Thank you! You have provided all the necessary information."
+                        st.session_state.context_complete = True
+
+                    st.experimental_rerun()
             else:
-                st.session_state.current_question = "Thank you! You have provided all the necessary information."
+                st.warning("Please provide an answer before submitting.")
 
-            # Trigger rerun to clear the input field
-            st.rerun()
-        else:
-            st.warning("Please provide an answer before proceeding.")
-
-    # Show context review button if enough info is collected
-    if len(st.session_state.context) >= 5:
+    # Show summary and "Review and Approve" only at the end
+    if st.session_state.context_complete:
+        st.subheader("✅ All required details are collected.")
         if st.button("Review and Approve Context"):
             summarize_context()
+
 
 
 
