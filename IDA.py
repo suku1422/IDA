@@ -107,9 +107,7 @@ def gather_context():
             else:
                 st.warning("Please enter your response before submitting.")
 
-            else:
-                st.warning("Please provide an answer before submitting.")
-
+      
     # Show summary and "Review and Approve" only at the end
     if st.session_state.context_complete:
         st.subheader("✅ All required details are collected.")
