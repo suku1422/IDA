@@ -72,21 +72,23 @@ def gather_context():
         st.session_state.question_count = 0
     if "context_complete" not in st.session_state:
         st.session_state.context_complete = False
+    if "last_input" not in st.session_state:
+        st.session_state.last_input = ""
 
-    # Input field with predictable key
-    user_input_key = "user_input_text"
     if not st.session_state.context_complete:
         st.write(f"**{st.session_state.current_question}**")
-        user_input = st.text_input("Your Response:", key=user_input_key)
 
+        # Show input field
+        user_input = st.text_input("Your Response:", value="", key="user_input_text")
+
+        # Detect submission
         if st.button("Submit"):
             if user_input.strip():
+                # Save response
                 st.session_state.context[st.session_state.current_question] = user_input
                 st.session_state.conversation_history.append({"role": "user", "content": user_input})
                 st.session_state.question_count += 1
-
-                # Clear input manually by resetting state
-                st.session_state[user_input_key] = ""
+                st.session_state.last_input = user_input  # temp store (since input resets)
 
                 if st.session_state.question_count >= 6:
                     st.session_state.context_complete = True
@@ -103,6 +105,9 @@ def gather_context():
                         st.session_state.conversation_history.append({"role": "assistant", "content": next_question})
                     else:
                         st.session_state.context_complete = True
+
+                # Clear the input field indirectly via rerun
+                st.rerun()
             else:
                 st.warning("Please enter your response before submitting.")
 
