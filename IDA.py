@@ -73,31 +73,30 @@ def gather_context():
     if "context_complete" not in st.session_state:
         st.session_state.context_complete = False
 
-    # Show the current question
+    # Input field with predictable key
+    user_input_key = "user_input_text"
     if not st.session_state.context_complete:
         st.write(f"**{st.session_state.current_question}**")
+        user_input = st.text_input("Your Response:", key=user_input_key)
 
-        # Generate a unique key for input box to force re-render
-        input_key = f"user_input_{len(st.session_state.conversation_history)}"
-        user_input = st.text_input("Your Response:", key=input_key)
-        
         if st.button("Submit"):
             if user_input.strip():
                 st.session_state.context[st.session_state.current_question] = user_input
                 st.session_state.conversation_history.append({"role": "user", "content": user_input})
                 st.session_state.question_count += 1
 
+                # Clear input manually by resetting state
+                st.session_state[user_input_key] = ""
+
                 if st.session_state.question_count >= 6:
                     st.session_state.context_complete = True
                 else:
-                    # Prepare next question
                     prompt = (
                         "Here is the conversation so far:\n"
                         + "\n".join([f"{msg['role']}: {msg['content']}" for msg in st.session_state.conversation_history])
                         + "\n\nBased on the context gathered, ask the next most relevant question needed to design the course. "
                         "There is a limit of 6 questions, so prioritize the most important ones."
                     )
-
                     next_question = get_openai_response(prompt)
                     if next_question:
                         st.session_state.current_question = next_question
@@ -107,15 +106,10 @@ def gather_context():
             else:
                 st.warning("Please enter your response before submitting.")
 
-      
-    # Show summary and "Review and Approve" only at the end
     if st.session_state.context_complete:
         st.subheader("✅ All required details are collected.")
         if st.button("Review and Approve Context"):
             summarize_context()
-
-
-
 
 
 def upload_raw_content():
