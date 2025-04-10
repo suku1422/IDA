@@ -62,7 +62,7 @@ def gather_context():
         st.session_state.conversation_history = [
             {"role": "system", "content": (
                 "You are an instructional design assistant. Your goal is to collect all essential details such as the topic, audience profile (like age profile, education and experience), key learning outcomes, mode of learning (instructor lead or self paced), duration of the course, whether the user has raw content for the course, and any other information the user has about the context, required to design an e-learning course. "
-                "Ask one question at a time. If the response needs clarification, ask a follow-up. "
+                "You can ask a maximum of 6 questions so prioritize the questions on its importance. Ask only one question at a time. If the response needs clarification, ask a follow-up. "
                 "Once the answer is sufficient, move to the next key topic. Keep the conversation smooth and engaging."
             )}
         ]
@@ -110,7 +110,7 @@ def gather_context():
                         st.session_state.current_question = "Thank you! You have provided all the necessary information."
                         st.session_state.context_complete = True
 
-                    st.experimental_rerun()
+                    st.rerun()
             else:
                 st.warning("Please provide an answer before submitting.")
 
