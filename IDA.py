@@ -80,20 +80,17 @@ def gather_context():
         # Generate a unique key for input box to force re-render
         input_key = f"user_input_{len(st.session_state.conversation_history)}"
         user_input = st.text_input("Your Response:", key=input_key)
-
+        
         if st.button("Submit"):
             if user_input.strip():
                 st.session_state.context[st.session_state.current_question] = user_input
                 st.session_state.conversation_history.append({"role": "user", "content": user_input})
                 st.session_state.question_count += 1
 
-                # Stop if we hit the max question count
                 if st.session_state.question_count >= 6:
                     st.session_state.context_complete = True
-                    st.experimental_rerun()
-
                 else:
-                    # Generate next question from OpenAI
+                    # Prepare next question
                     prompt = (
                         "Here is the conversation so far:\n"
                         + "\n".join([f"{msg['role']}: {msg['content']}" for msg in st.session_state.conversation_history])
@@ -102,17 +99,16 @@ def gather_context():
                     )
 
                     next_question = get_openai_response(prompt)
-
                     if next_question:
                         st.session_state.current_question = next_question
                         st.session_state.conversation_history.append({"role": "assistant", "content": next_question})
                     else:
-                        st.session_state.current_question = "Thank you! You have provided all the necessary information."
                         st.session_state.context_complete = True
-
-                    st.rerun()
             else:
-                st.warning("Please provide an answer before submitting.")
+                st.warning("Please enter your response before submitting.")
+
+                    else:
+                        st.warning("Please provide an answer before submitting.")
 
     # Show summary and "Review and Approve" only at the end
     if st.session_state.context_complete:
