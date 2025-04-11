@@ -109,18 +109,41 @@ def gather_context():
             else:
                 st.warning("Please enter your response before submitting.")
 
-    if st.session_state.context_complete:
-        st.subheader("✅ Summary of Gathered Context")
-        context_df = pd.DataFrame(list(st.session_state.context.items()), columns=["Parameter", "Value"])
-        st.table(context_df)
+    if st.session_state.context_complete and "context_summary" not in st.session_state:
+    # Generate summarized version with LLM only once
+    summary_prompt = (
+        "Summarize the following instructional design context into concise bullet points. "
+        "Each bullet should have a short label (up to 6 words) representing the key aspect collected, "
+        "and a short summary (not the full user response). Avoid repeating full questions or raw text. "
+        "Return the result as a two-column table with headers 'Aspect' and 'Summary'.\n\n"
+        f"Context:\n{st.session_state.context}"
+    )
+    summary_result = get_openai_response(summary_prompt)
+    st.session_state.context_summary = summary_result
 
-        cols = st.columns(2)
-        with cols[0]:
+    if st.session_state.context_complete and "context_summary" in st.session_state:
+       st.subheader("✅ Summary of Collected Context")
+       st.markdown(st.session_state.context_summary)
+
+    cols = st.columns(2)
+       with cols[0]:
             if st.button("Approve and Continue"):
                 st.session_state.step = 2
+                del st.session_state.context_summary  # Reset for next time
                 st.rerun()
-        with cols[1]:
+       with cols[1]:
             if st.button("Modify Information"):
+                st.session_state.context_complete = False
+                st.session_state.question_count = 0
+                st.session_state.context = {}
+                st.session_state.current_question = "What is the topic of your e-learning course?"
+                st.session_state.conversation_history = [
+                    {"role": "system", "content": st.session_state.conversation_history[0]["content"]}
+                ]
+                if "context_summary" in st.session_state:
+                    del st.session_state.context_summary
+                st.rerun()
+
                 # Reset state
                 st.session_state.context_complete = False
                 st.session_state.question_count = 0
@@ -148,6 +171,13 @@ def upload_raw_content():
 def analyze_content():
     st.header("Step 2: Analyze Raw Content")
 
+    uploaded_file = st.file_uploader("Upload your raw content files (PDF, DOCX, TXT)", type=["pdf", "docx", "txt"])
+    if uploaded_file:
+        if 'raw_contents' not in st.session_state:
+            st.session_state.raw_contents = []
+    st.session_state.raw_contents.append(uploaded_file)
+    st.success("File uploaded successfully!")
+       
     if "raw_contents" in st.session_state and st.session_state["raw_contents"]:
         # Read the raw content
         raw_text = ""
@@ -196,7 +226,7 @@ def analyze_content():
                     for file in additional_files:
                         st.session_state.raw_contents.append(file)
                     st.success("Additional files uploaded successfully!")
-                    st.experimental_rerun()
+                    st.rerun()
             elif decision == "No action needed":
                 st.session_state.step = 3
             elif decision == "Generate content to fill gaps":
