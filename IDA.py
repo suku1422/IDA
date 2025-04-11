@@ -111,13 +111,13 @@ def gather_context():
 
     if st.session_state.context_complete and "context_summary" not in st.session_state:
     # Generate summarized version with LLM only once
-    summary_prompt = (
-        "Summarize the following instructional design context into concise bullet points. "
-        "Each bullet should have a short label (up to 6 words) representing the key aspect collected, "
-        "and a short summary (not the full user response). Avoid repeating full questions or raw text. "
-        "Return the result as a two-column table with headers 'Aspect' and 'Summary'.\n\n"
-        f"Context:\n{st.session_state.context}"
-    )
+        summary_prompt = (
+            "Summarize the following instructional design context into concise bullet points. "
+            "Each bullet should have a short label (up to 6 words) representing the key aspect collected, "
+            "and a short summary (not the full user response). Avoid repeating full questions or raw text. "
+            "Return the result as a two-column table with headers 'Aspect' and 'Summary'.\n\n"
+            f"Context:\n{st.session_state.context}"
+        )
     summary_result = get_openai_response(summary_prompt)
     st.session_state.context_summary = summary_result
 
