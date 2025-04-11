@@ -72,25 +72,23 @@ def gather_context():
         st.session_state.question_count = 0
     if "context_complete" not in st.session_state:
         st.session_state.context_complete = False
-    if "last_input" not in st.session_state:
-        st.session_state.last_input = ""
+
+    question_limit = 8  # 6 core + 2 follow-up questions
 
     if not st.session_state.context_complete:
         st.write(f"**{st.session_state.current_question}**")
 
-        # Show input field
-        user_input = st.text_input("Your Response:", value="", key="user_input_text")
+        # 🔑 Dynamic key for text input to ensure clearing
+        input_key = f"user_input_{len(st.session_state.conversation_history)}"
+        user_input = st.text_input("Your Response:", key=input_key)
 
-        # Detect submission
         if st.button("Submit"):
             if user_input.strip():
-                # Save response
                 st.session_state.context[st.session_state.current_question] = user_input
                 st.session_state.conversation_history.append({"role": "user", "content": user_input})
                 st.session_state.question_count += 1
-                st.session_state.last_input = user_input  # temp store (since input resets)
 
-                if st.session_state.question_count >= 6:
+                if st.session_state.question_count >= question_limit:
                     st.session_state.context_complete = True
                 else:
                     prompt = (
@@ -106,15 +104,32 @@ def gather_context():
                     else:
                         st.session_state.context_complete = True
 
-                # Clear the input field indirectly via rerun
+                # Force a rerun so the input box gets refreshed
                 st.rerun()
             else:
                 st.warning("Please enter your response before submitting.")
 
     if st.session_state.context_complete:
-        st.subheader("✅ All required details are collected.")
-        if st.button("Review and Approve Context"):
-            summarize_context()
+        st.subheader("✅ Summary of Gathered Context")
+        context_df = pd.DataFrame(list(st.session_state.context.items()), columns=["Parameter", "Value"])
+        st.table(context_df)
+
+        cols = st.columns(2)
+        with cols[0]:
+            if st.button("Approve and Continue"):
+                st.session_state.step = 2
+        with cols[1]:
+            if st.button("Modify Information"):
+                # Reset state
+                st.session_state.context_complete = False
+                st.session_state.question_count = 0
+                st.session_state.context = {}
+                st.session_state.current_question = "What is the topic of your e-learning course?"
+                st.session_state.conversation_history = [
+                    {"role": "system", "content": st.session_state.conversation_history[0]["content"]}
+                ]
+                st.rerun()
+
 
 
 def upload_raw_content():
