@@ -118,6 +118,7 @@ def gather_context():
         with cols[0]:
             if st.button("Approve and Continue"):
                 st.session_state.step = 2
+                st.rerun()
         with cols[1]:
             if st.button("Modify Information"):
                 # Reset state
@@ -129,8 +130,6 @@ def gather_context():
                     {"role": "system", "content": st.session_state.conversation_history[0]["content"]}
                 ]
                 st.rerun()
-
-
 
 def upload_raw_content():
     st.header("Upload Raw Content")
@@ -145,28 +144,11 @@ def upload_raw_content():
     else:
         st.info("Please upload the raw content to proceed.")
 
-def summarize_context():
-    st.header("Review and Approve Context Information")
-
-    # Create a DataFrame for tabular display
-    context_df = pd.DataFrame(list(st.session_state.context.items()), columns=['Parameter', 'Value'])
-    st.table(context_df)
-
-    cols = st.columns(2)
-    with cols[0]:
-        if st.button("Approve and Continue"):
-            st.session_state.step = 2
-    with cols[1]:
-        if st.button("Modify Information"):
-            # Reset to step 1
-            st.session_state.step = 1
-            st.session_state.current_question = 0
-
 # Step 2: Analyze Raw Content
 def analyze_content():
     st.header("Step 2: Analyze Raw Content")
 
-    if st.session_state.raw_contents:
+    if "raw_contents" in st.session_state and st.session_state["raw_contents"]:
         # Read the raw content
         raw_text = ""
         try:
