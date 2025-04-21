@@ -128,17 +128,17 @@ def gather_context():
         cols = st.columns(2)
         with cols[0]:
             if st.button("Approve and Continue"):
-            # 🔍 Check for raw content answer before proceeding to Step 2
+                # 🔍 Check for raw content answer before proceeding to Step 2
                 has_raw_content = None
                 for question, answer in st.session_state.context.items():
                     if "raw content" in question.lower():
                         has_raw_content = "yes" in answer.lower()
                         break
-            st.session_state.has_raw_content = has_raw_content
+                st.session_state.has_raw_content = has_raw_content
 
-            st.session_state.step = 2
-            del st.session_state.context_summary
-            st.rerun()
+                st.session_state.step = 2
+                del st.session_state.context_summary
+                st.rerun()
     
        with cols[1]:
            if st.button("Modify Information"):
