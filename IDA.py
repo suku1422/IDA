@@ -125,14 +125,14 @@ def gather_context():
        st.subheader("✅ Summary of Collected Context")
        st.markdown(st.session_state.context_summary)
 
-    cols = st.columns(2)
-    with cols[0]:
-        if st.button("Approve and Continue"):
+       cols = st.columns(2)
+       with cols[0]:
+           if st.button("Approve and Continue"):
                 st.session_state.step = 2
                 del st.session_state.context_summary  # Reset for next time
                 st.rerun()
-    with cols[1]:
-        if st.button("Modify Information"):
+       with cols[1]:
+           if st.button("Modify Information"):
                 st.session_state.context_complete = False
                 st.session_state.question_count = 0
                 st.session_state.context = {}
