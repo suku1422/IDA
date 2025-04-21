@@ -118,21 +118,21 @@ def gather_context():
             "Return the result as a two-column table with headers 'Aspect' and 'Summary'.\n\n"
             f"Context:\n{st.session_state.context}"
         )
-    summary_result = get_openai_response(summary_prompt)
-    st.session_state.context_summary = summary_result
+        summary_result = get_openai_response(summary_prompt)
+        st.session_state.context_summary = summary_result
 
     if st.session_state.context_complete and "context_summary" in st.session_state:
        st.subheader("✅ Summary of Collected Context")
        st.markdown(st.session_state.context_summary)
 
     cols = st.columns(2)
-       with cols[0]:
-            if st.button("Approve and Continue"):
+    with cols[0]:
+        if st.button("Approve and Continue"):
                 st.session_state.step = 2
                 del st.session_state.context_summary  # Reset for next time
                 st.rerun()
-       with cols[1]:
-            if st.button("Modify Information"):
+    with cols[1]:
+        if st.button("Modify Information"):
                 st.session_state.context_complete = False
                 st.session_state.question_count = 0
                 st.session_state.context = {}
@@ -175,8 +175,8 @@ def analyze_content():
     if uploaded_file:
         if 'raw_contents' not in st.session_state:
             st.session_state.raw_contents = []
-    st.session_state.raw_contents.append(uploaded_file)
-    st.success("File uploaded successfully!")
+        st.session_state.raw_contents.append(uploaded_file)
+        st.success("File uploaded successfully!")
        
     if "raw_contents" in st.session_state and st.session_state["raw_contents"]:
         # Read the raw content
