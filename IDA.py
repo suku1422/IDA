@@ -167,7 +167,10 @@ def gather_context():
 def analyze_content():
     st.header("Step 2: Analyze Raw Content")
 
-    # File uploader at top
+    # Set the default control flag
+    if 'content_analysis_done' not in st.session_state:
+        st.session_state.content_analysis_done = False
+
     uploaded_files = st.file_uploader(
         "Upload your raw content files (PDF, DOCX, TXT)", 
         type=["pdf", "docx", "txt"],
@@ -175,85 +178,86 @@ def analyze_content():
     )
 
     if uploaded_files:
-        # Store uploaded files in session state
         if 'raw_contents' not in st.session_state:
             st.session_state.raw_contents = []
         st.session_state.raw_contents.extend(uploaded_files)
         st.success(f"{len(uploaded_files)} file(s) uploaded successfully!")
-        st.rerun()
+        return  # Let user stay here after upload to avoid premature progress
 
     if "raw_contents" in st.session_state and st.session_state.raw_contents:
-        raw_text = ""
-        try:
-            for uploaded_file in st.session_state.raw_contents:
-                if uploaded_file.type == "application/pdf":
-                    from PyPDF2 import PdfReader
-                    reader = PdfReader(uploaded_file)
-                    for page in reader.pages:
-                        page_text = page.extract_text()
-                        if page_text:
-                            raw_text += page_text + "\n"
-                elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-                    import docx
-                    doc = docx.Document(uploaded_file)
-                    for para in doc.paragraphs:
-                        raw_text += para.text + "\n"
-                elif uploaded_file.type == "text/plain":
-                    raw_text += uploaded_file.getvalue().decode("utf-8") + "\n"
-        except Exception as e:
-            st.error(f"Error reading uploaded file: {e}")
-            return
+        if not st.session_state.content_analysis_done:
+            raw_text = ""
+            try:
+                for uploaded_file in st.session_state.raw_contents:
+                    if uploaded_file.type == "application/pdf":
+                        from PyPDF2 import PdfReader
+                        reader = PdfReader(uploaded_file)
+                        for page in reader.pages:
+                            page_text = page.extract_text()
+                            if page_text:
+                                raw_text += page_text + "\n"
+                    elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                        import docx
+                        doc = docx.Document(uploaded_file)
+                        for para in doc.paragraphs:
+                            raw_text += para.text + "\n"
+                    elif uploaded_file.type == "text/plain":
+                        raw_text += uploaded_file.getvalue().decode("utf-8") + "\n"
+            except Exception as e:
+                st.error(f"Error reading uploaded file: {e}")
+                return
 
-        # Use the preserved prompt for analysis
-        prompt = (
-            f"Analyze the following course objectives and topic:\n"
-            f"**Topic:** {st.session_state.context.get('topic')}\n"
-            f"**Objectives:** {st.session_state.context.get('objectives')}\n\n"
-            f"Here is the raw content:\n{raw_text}\n\n"
-            f"Identify any content gaps in the raw content based on the provided topic and objectives."
-            f" List the missing topics or areas that need to be covered in the course."
-        )
+            # Prompt is unchanged
+            prompt = (
+                f"Analyze the following course objectives and topic:\n"
+                f"**Topic:** {st.session_state.context.get('topic')}\n"
+                f"**Objectives:** {st.session_state.context.get('objectives')}\n\n"
+                f"Here is the raw content:\n{raw_text}\n\n"
+                f"Identify any content gaps in the raw content based on the provided topic and objectives."
+                f" List the missing topics or areas that need to be covered in the course."
+            )
 
-        analysis = get_openai_response(prompt)
-        if analysis:
-            st.session_state.analysis = analysis
-            st.write("### Content Analysis:")
-            st.write(analysis)
+            analysis = get_openai_response(prompt)
+            if analysis:
+                st.session_state.analysis = analysis
+                st.write("### Content Analysis:")
+                st.write(analysis)
 
-            st.markdown("**How would you like to address the content gaps?**")
-            decision = st.radio("", ("Generate content to fill gaps", "Provide additional sources", "No action needed"))
+        # Now show decision options and control navigation
+        st.markdown("**How would you like to address the content gaps?**")
+        decision = st.radio("", ("Generate content to fill gaps", "Provide additional sources", "No action needed"))
 
-            if decision == "Generate content to fill gaps":
-                filled_prompt = (
-                    f"Based on the identified content gaps below, generate the necessary content to fill these gaps.\n\n"
-                    f"**Content Gaps:**\n{analysis}\n\n"
-                    f"Provide the additional content required to cover these areas effectively."
-                )
-                filled_content = get_openai_response(filled_prompt)
-                if filled_content:
-                    st.session_state.filled_content = filled_content
-                    st.success("Generated content to fill the identified gaps.")
-                    st.session_state.step = 3
+        if decision == "Generate content to fill gaps" and "filled_content" not in st.session_state:
+            filled_prompt = (
+                f"Based on the identified content gaps below, generate the necessary content to fill these gaps.\n\n"
+                f"**Content Gaps:**\n{st.session_state.analysis}\n\n"
+                f"Provide the additional content required to cover these areas effectively."
+            )
+            filled_content = get_openai_response(filled_prompt)
+            if filled_content:
+                st.session_state.filled_content = filled_content
+                st.success("Generated content to fill the identified gaps.")
 
-            elif decision == "Provide additional sources":
-                more_files = st.file_uploader("Upload additional source files", type=["pdf", "docx", "txt"], accept_multiple_files=True, key="more_uploads")
-                if more_files:
-                    st.session_state.raw_contents.extend(more_files)
-                    st.success("Additional files uploaded successfully!")
-                    st.rerun()
+        elif decision == "Provide additional sources":
+            more_files = st.file_uploader("Upload additional source files", type=["pdf", "docx", "txt"], accept_multiple_files=True, key="more_uploads")
+            if more_files:
+                st.session_state.raw_contents.extend(more_files)
+                st.success("Additional files uploaded successfully!")
+                return
 
-            elif decision == "No action needed":
-                st.session_state.step = 3
-
-            if st.button("Continue to Step 3"):
-                st.session_state.step = 3
+        if st.button("Continue to Step 3"):
+            st.session_state.content_analysis_done = True
+            st.session_state.step = 3
+            st.rerun()
 
     else:
         st.info("You haven’t uploaded any raw content yet.")
         proceed = st.radio("Would you like to continue without uploading any content?", ("Yes, continue", "No, I’ll upload files"))
         if proceed == "Yes, continue":
+            st.session_state.content_analysis_done = True
             st.session_state.step = 3
             st.rerun()
+
 
 
 # Step 3: Generate Content Outline
