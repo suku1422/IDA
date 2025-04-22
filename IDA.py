@@ -202,8 +202,7 @@ def analyze_content():
         # Prompt stays as-is
         prompt = (
             f"Analyze the following course objectives and topic:\n"
-            f"**Topic:** {st.session_state.context.get('topic')}\n"
-            f"**Objectives:** {st.session_state.context.get('objectives')}\n\n"
+            f"Here is the instructional design context:\n{st.session_state.context_summary}\n\n"
             f"Here is the raw content:\n{raw_text}\n\n"
             f"Identify any content gaps in the raw content based on the provided topic and objectives."
             f" List the missing topics or areas that need to be covered in the course."
