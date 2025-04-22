@@ -163,32 +163,26 @@ def gather_context():
                 ]
                 st.rerun()
 
-def upload_raw_content():
-    st.header("Upload Raw Content")
-    uploaded_file = st.file_uploader("Upload your raw content files (PDF, DOCX, TXT)", type=["pdf", "docx", "txt"])
-    if uploaded_file:
-        # Store the file in session state
-        if 'raw_contents' not in st.session_state:
-            st.session_state.raw_contents = []
-        st.session_state.raw_contents.append(uploaded_file)
-        st.success("File uploaded successfully!")
-        summarize_context()
-    else:
-        st.info("Please upload the raw content to proceed.")
-
 # Step 2: Analyze Raw Content
 def analyze_content():
     st.header("Step 2: Analyze Raw Content")
 
-    uploaded_file = st.file_uploader("Upload your raw content files (PDF, DOCX, TXT)", type=["pdf", "docx", "txt"])
-    if uploaded_file:
+    # File uploader at top
+    uploaded_files = st.file_uploader(
+        "Upload your raw content files (PDF, DOCX, TXT)", 
+        type=["pdf", "docx", "txt"],
+        accept_multiple_files=True
+    )
+
+    if uploaded_files:
+        # Store uploaded files in session state
         if 'raw_contents' not in st.session_state:
             st.session_state.raw_contents = []
-        st.session_state.raw_contents.append(uploaded_file)
-        st.success("File uploaded successfully!")
-       
-    if "raw_contents" in st.session_state and st.session_state["raw_contents"]:
-        # Read the raw content
+        st.session_state.raw_contents.extend(uploaded_files)
+        st.success(f"{len(uploaded_files)} file(s) uploaded successfully!")
+        st.rerun()
+
+    if "raw_contents" in st.session_state and st.session_state.raw_contents:
         raw_text = ""
         try:
             for uploaded_file in st.session_state.raw_contents:
@@ -210,7 +204,7 @@ def analyze_content():
             st.error(f"Error reading uploaded file: {e}")
             return
 
-        # Compare with context to find gaps
+        # Use the preserved prompt for analysis
         prompt = (
             f"Analyze the following course objectives and topic:\n"
             f"**Topic:** {st.session_state.context.get('topic')}\n"
@@ -229,17 +223,7 @@ def analyze_content():
             st.markdown("**How would you like to address the content gaps?**")
             decision = st.radio("", ("Generate content to fill gaps", "Provide additional sources", "No action needed"))
 
-            if decision == "Provide additional sources":
-                additional_files = st.file_uploader("Upload additional source files", type=["pdf", "docx", "txt"], accept_multiple_files=True)
-                if additional_files:
-                    for file in additional_files:
-                        st.session_state.raw_contents.append(file)
-                    st.success("Additional files uploaded successfully!")
-                    st.rerun()
-            elif decision == "No action needed":
-                st.session_state.step = 3
-            elif decision == "Generate content to fill gaps":
-                # Generate content to fill gaps
+            if decision == "Generate content to fill gaps":
                 filled_prompt = (
                     f"Based on the identified content gaps below, generate the necessary content to fill these gaps.\n\n"
                     f"**Content Gaps:**\n{analysis}\n\n"
@@ -248,14 +232,29 @@ def analyze_content():
                 filled_content = get_openai_response(filled_prompt)
                 if filled_content:
                     st.session_state.filled_content = filled_content
-                    st.success("Content gaps have been addressed by generating additional content.")
+                    st.success("Generated content to fill the identified gaps.")
                     st.session_state.step = 3
+
+            elif decision == "Provide additional sources":
+                more_files = st.file_uploader("Upload additional source files", type=["pdf", "docx", "txt"], accept_multiple_files=True, key="more_uploads")
+                if more_files:
+                    st.session_state.raw_contents.extend(more_files)
+                    st.success("Additional files uploaded successfully!")
+                    st.rerun()
+
+            elif decision == "No action needed":
+                st.session_state.step = 3
 
             if st.button("Continue to Step 3"):
                 st.session_state.step = 3
+
     else:
-        st.error("No raw content available to analyze.")
-        st.session_state.step = 3
+        st.info("You haven’t uploaded any raw content yet.")
+        proceed = st.radio("Would you like to continue without uploading any content?", ("Yes, continue", "No, I’ll upload files"))
+        if proceed == "Yes, continue":
+            st.session_state.step = 3
+            st.rerun()
+
 
 # Step 3: Generate Content Outline
 def generate_outline():
