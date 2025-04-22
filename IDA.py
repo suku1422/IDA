@@ -218,8 +218,11 @@ def analyze_content():
         st.write(analysis)
 
         # Let user choose what to do
-        decision = st.radio("How would you like to address the content gaps?", 
-                            ("Generate content to fill gaps", "Provide additional sources", "No action needed"))
+        decision = st.radio(
+            "How would you like to address the content gaps?",
+            options=("Generate content to fill gaps", "Provide additional sources", "No action needed"),
+            index=2  # 👈 third option is selected by default
+)
 
         if decision == "Generate content to fill gaps":
             filled_prompt = (
@@ -262,15 +265,13 @@ def analyze_content():
 def generate_outline():
     st.header("Step 3: Generate Content Outline")
 
+    if "context_summary" not in st.session_state:
+        st.error("Context summary not found. Please complete Step 1 before generating an outline.")
+        return
+
     prompt = (
-        f"Based on the following context information and raw content, generate a detailed content outline for the e-learning course.\n\n"
-        f"**Context Information:**\n"
-        f"**Topic:** {st.session_state.context.get('topic')}\n"
-        f"**Audience Profile:** {st.session_state.context.get('audience_profile')}\n"
-        f"**Objectives:** {st.session_state.context.get('objectives')}\n"
-        f"**Duration:** {st.session_state.context.get('duration')}\n"
-        f"**Graded Final Assessment:** {st.session_state.context.get('graded_assessment')}\n"
-        f"**Additional Information:** {st.session_state.context.get('additional_info')}\n\n"
+        f"Based on the following instructional design context, generate a detailed content outline for the e-learning course.\n\n"
+        f"{st.session_state.context_summary}\n\n"
     )
 
     if st.session_state.raw_content:
