@@ -140,8 +140,8 @@ def gather_context():
                 del st.session_state.context_summary
                 st.rerun()
     
-       with cols[1]:
-           if st.button("Modify Information"):
+        with cols[1]:
+            if st.button("Modify Information"):
                 st.session_state.context_complete = False
                 st.session_state.question_count = 0
                 st.session_state.context = {}
