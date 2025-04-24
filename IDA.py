@@ -275,8 +275,10 @@ def generate_outline():
     prompt = (
         f"Based on the following instructional design context, generate a detailed content outline for the e-learning course.\n\n"
         f"{context_summary}\n\n"
+        f"Return the outline as a two-column table in markdown format with headers 'Outline' and 'Duration'. "
+        f"Ensure that each row contains a specific section of the course outline and an estimated duration (e.g., '10 mins', '15 mins', etc.)."
     )
-
+    
     # Include raw or filled content if available
     if 'filled_content' in st.session_state:
         prompt += "Include and build on the following content which fills earlier gaps:\n"
@@ -291,12 +293,25 @@ def generate_outline():
             st.session_state.content_outline = outline
 
     st.write("### Generated Content Outline:")
-    st.write(st.session_state.content_outline)
 
-    cols = st.columns(2)
-    with cols[0]:
-        if st.button("Approve Outline and Continue"):
-            st.session_state.step = 4
+# Try rendering the outline as a markdown table if formatted that way
+    try:
+        import pandas as pd
+        import io
+
+    # Attempt to parse the markdown table using pandas
+        df_outline = pd.read_csv(io.StringIO(st.session_state.content_outline), sep="|", engine="python", skiprows=2)
+        df_outline = df_outline.dropna(axis=1, how="all")  # Remove empty columns (first/last '|' often causes this)
+        df_outline.columns = [col.strip() for col in df_outline.columns]
+        st.dataframe(df_outline)
+    except Exception as e:
+        st.warning("Could not display formatted table. Showing raw content instead.")
+        st.markdown(st.session_state.content_outline)
+
+    with st.form("approve_outline_form"):
+         st.form_submit_button("Approve Outline and Continue", type="primary")
+         st.session_state.step = 4
+         st.rerun()
     with cols[1]:
         if st.button("Modify Outline"):
             st.warning("Modification functionality not implemented in this prototype.")
@@ -347,17 +362,24 @@ def generate_storyboard():
 def create_final_assessment():
     st.header("Step 5: Create Final Assessment")
 
-    if st.session_state.context.get("graded_assessment", "").lower() == "yes":
+    # Retrieve the approved context summary
+    context_summary = st.session_state.get("context_summary_persisted", "")
+
+    # Check if the summary indicates a final graded assessment is needed
+    if "yes" in context_summary.lower() and "final assessment" in context_summary.lower():
+        # Use the content outline and context to create the assessment prompt
         prompt = (
-            f"Based on the following content outline, create a set of medium-difficulty questions for the final assessment of the e-learning course.\n\n"
-            f"**Content Outline:**\n{st.session_state.content_outline}\n\n"
-            f"Ensure that the questions accurately reflect the material covered and effectively evaluate the learners' understanding."
+            f"Based on the following instructional design context and the generated course outline, "
+            f"create a set of medium-difficulty final assessment questions for this e-learning course. For each question, provide the question stub, the options, and also a correct answer\n\n"
+            f"### Instructional Design Context:\n{context_summary}\n\n"
+            f"### Content Outline:\n{st.session_state.content_outline}\n\n"
+            f"Ensure the questions are well-aligned with the learning objectives, and suitable for the audience profile. "
         )
 
         assessment = get_openai_response(prompt, max_tokens=1500)
         if assessment:
             st.session_state.final_assessment = assessment
-            st.write("### Final Assessment Questions:")
+            st.subheader("Final Assessment Questions")
             st.markdown("```")
             st.write(assessment)
             st.markdown("```")
@@ -365,13 +387,15 @@ def create_final_assessment():
             cols = st.columns(2)
             with cols[0]:
                 if st.button("Approve Assessment"):
-                    st.success("Instructional design process completed successfully!")
+                    st.success("🎉 Instructional design process completed successfully!")
             with cols[1]:
                 if st.button("Modify Assessment"):
                     st.warning("Modification functionality not implemented in this prototype.")
-                    # Implement modification logic as needed
+        else:
+            st.error("Failed to generate assessment. Please try again.")
     else:
-        st.success("Instructional design process completed successfully!")
+        st.success("🎉 Instructional design process completed successfully!")
+
 
 # Main Application Flow
 def main():
