@@ -120,6 +120,7 @@ def gather_context():
         )
         summary_result = get_openai_response(summary_prompt)
         st.session_state.context_summary = summary_result
+        st.session_state.context_summary_persisted = summary_result
 
     if st.session_state.context_complete and "context_summary" in st.session_state:
         st.subheader("✅ Summary of Collected Context")
@@ -137,7 +138,7 @@ def gather_context():
                 st.session_state.has_raw_content = has_raw_content
 
                 st.session_state.step = 2
-                del st.session_state.context_summary
+                # del st.session_state.context_summary
                 st.rerun()
     
         with cols[1]:
@@ -265,17 +266,24 @@ def analyze_content():
 def generate_outline():
     st.header("Step 3: Generate Content Outline")
 
-    if "context_summary" not in st.session_state:
+    # Make sure context is available
+    context_summary = st.session_state.get("context_summary_persisted")
+    if not context_summary:
         st.error("Context summary not found. Please complete Step 1 before generating an outline.")
         return
 
     prompt = (
         f"Based on the following instructional design context, generate a detailed content outline for the e-learning course.\n\n"
-        f"{st.session_state.context_summary}\n\n"
+        f"{context_summary}\n\n"
     )
 
-    if st.session_state.raw_content:
-        prompt += "Ensure that the content outline heavily incorporates the provided raw content.\n"
+    # Include raw or filled content if available
+    if 'filled_content' in st.session_state:
+        prompt += "Include and build on the following content which fills earlier gaps:\n"
+        prompt += st.session_state.filled_content + "\n\n"
+    elif "raw_text" in st.session_state:
+        prompt += "Also refer to the uploaded raw content:\n"
+        prompt += st.session_state.raw_text[:1500] + "\n\n"
 
     if st.session_state.content_outline is None:
         outline = get_openai_response(prompt)
@@ -292,7 +300,7 @@ def generate_outline():
     with cols[1]:
         if st.button("Modify Outline"):
             st.warning("Modification functionality not implemented in this prototype.")
-                # Implement modification logic as needed
+
 
 # Step 4: Generate Storyboard
 def generate_storyboard():
