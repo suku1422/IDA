@@ -272,7 +272,6 @@ def generate_outline():
         st.error("Context summary not found. Please complete Step 1 before generating an outline.")
         return
 
-    # Compose the prompt for OpenAI
     prompt = (
         f"Based on the following instructional design context, generate a detailed content outline "
         f"for the e-learning course.\n\n"
@@ -281,15 +280,13 @@ def generate_outline():
         f"Do not use bullet points. Each row should contain one topic or sub-topic and its estimated duration in minutes."
     )
 
-    # Optionally add filled or raw content
     if 'filled_content' in st.session_state:
         prompt += "\n\nInclude and build on the following content which fills earlier gaps:\n"
         prompt += st.session_state.filled_content
     elif "raw_text" in st.session_state:
         prompt += "\n\nAlso refer to the uploaded raw content:\n"
-        prompt += st.session_state.raw_text[:1500]  # optional limit
+        prompt += st.session_state.raw_text[:1500]
 
-    # Only generate if not already present
     if st.session_state.content_outline is None:
         outline = get_openai_response(prompt)
         if outline:
@@ -297,20 +294,36 @@ def generate_outline():
 
     st.subheader("Generated Content Outline")
 
-    # Try rendering as a table first
+    # CSS for wrapped columns and button styling
+    st.markdown("""
+        <style>
+            .streamlit-expanderHeader {
+                font-weight: bold;
+            }
+            .dataframe td {
+                white-space: normal !important;
+                word-wrap: break-word !important;
+            }
+            button:focus {
+                outline: none !important;
+                box-shadow: none !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
     try:
         import pandas as pd
         import io
 
         df = pd.read_csv(io.StringIO(st.session_state.content_outline), sep="|", engine="python", skiprows=2)
-        df = df.dropna(axis=1, how="all")  # Remove extra empty cols
-        df.columns = [col.strip() for col in df.columns]
-        st.dataframe(df)
+        df = df.dropna(axis=1, how="all")
+        df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+        df.columns = ["Outline", "Duration (in mins)"]
+        st.dataframe(df, use_container_width=True)
     except Exception:
         st.warning("⚠️ Could not parse outline as a table. Showing raw content instead:")
         st.markdown(st.session_state.content_outline)
 
-    # Use a form to safely advance step on button click
     with st.form("approve_outline_form"):
         submitted = st.form_submit_button("Approve Outline and Continue", type="primary")
         if submitted:
