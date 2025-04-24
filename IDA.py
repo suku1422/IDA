@@ -266,55 +266,56 @@ def analyze_content():
 def generate_outline():
     st.header("Step 3: Generate Content Outline")
 
-    # Make sure context is available
+    # Ensure context summary is available
     context_summary = st.session_state.get("context_summary_persisted")
     if not context_summary:
         st.error("Context summary not found. Please complete Step 1 before generating an outline.")
         return
 
+    # Compose the prompt for OpenAI
     prompt = (
-        f"Based on the following instructional design context, generate a detailed content outline for the e-learning course.\n\n"
+        f"Based on the following instructional design context, generate a detailed content outline "
+        f"for the e-learning course.\n\n"
         f"{context_summary}\n\n"
-        f"Return the outline as a two-column table in markdown format with headers 'Outline' and 'Duration'. "
-        f"Ensure that each row contains a specific section of the course outline and an estimated duration (e.g., '10 mins', '15 mins', etc.)."
+        f"Return the outline strictly as a markdown table with two columns: 'Outline' and 'Duration'. "
+        f"Do not use bullet points. Each row should contain one topic or sub-topic and its estimated duration in minutes."
     )
-    
-    # Include raw or filled content if available
-    if 'filled_content' in st.session_state:
-        prompt += "Include and build on the following content which fills earlier gaps:\n"
-        prompt += st.session_state.filled_content + "\n\n"
-    elif "raw_text" in st.session_state:
-        prompt += "Also refer to the uploaded raw content:\n"
-        prompt += st.session_state.raw_text[:1500] + "\n\n"
 
+    # Optionally add filled or raw content
+    if 'filled_content' in st.session_state:
+        prompt += "\n\nInclude and build on the following content which fills earlier gaps:\n"
+        prompt += st.session_state.filled_content
+    elif "raw_text" in st.session_state:
+        prompt += "\n\nAlso refer to the uploaded raw content:\n"
+        prompt += st.session_state.raw_text[:1500]  # optional limit
+
+    # Only generate if not already present
     if st.session_state.content_outline is None:
         outline = get_openai_response(prompt)
         if outline:
             st.session_state.content_outline = outline
 
-    st.write("### Generated Content Outline:")
+    st.subheader("Generated Content Outline")
 
-# Try rendering the outline as a markdown table if formatted that way
+    # Try rendering as a table first
     try:
         import pandas as pd
         import io
 
-    # Attempt to parse the markdown table using pandas
-        df_outline = pd.read_csv(io.StringIO(st.session_state.content_outline), sep="|", engine="python", skiprows=2)
-        df_outline = df_outline.dropna(axis=1, how="all")  # Remove empty columns (first/last '|' often causes this)
-        df_outline.columns = [col.strip() for col in df_outline.columns]
-        st.dataframe(df_outline)
-    except Exception as e:
-        st.warning("Could not display formatted table. Showing raw content instead.")
+        df = pd.read_csv(io.StringIO(st.session_state.content_outline), sep="|", engine="python", skiprows=2)
+        df = df.dropna(axis=1, how="all")  # Remove extra empty cols
+        df.columns = [col.strip() for col in df.columns]
+        st.dataframe(df)
+    except Exception:
+        st.warning("⚠️ Could not parse outline as a table. Showing raw content instead:")
         st.markdown(st.session_state.content_outline)
 
+    # Use a form to safely advance step on button click
     with st.form("approve_outline_form"):
-         st.form_submit_button("Approve Outline and Continue", type="primary")
-         st.session_state.step = 4
-         st.rerun()
-    with cols[1]:
-        if st.button("Modify Outline"):
-            st.warning("Modification functionality not implemented in this prototype.")
+        submitted = st.form_submit_button("Approve Outline and Continue", type="primary")
+        if submitted:
+            st.session_state.step = 4
+            st.rerun()
 
 
 # Step 4: Generate Storyboard
