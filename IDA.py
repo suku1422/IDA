@@ -353,11 +353,11 @@ def generate_storyboard():
             f"### Instructional Design Context:\n{context_summary}\n\n"
             f"Strictly format the storyboard as a table with three columns: **Onscreen Text**, **Voice Over Script**, **Visualization Guidelines**.\n"
             f"Make sure that the **Onscreen Text** column in the table is NOT the slide title, but should contain key points that help convey the message of the slide.\n"
-            f"The **Voice Over Script** column should contain the entire narrative voice over script covering the content that will be explained in the slide and not just introductory lines.\n"
+            f"The **Voice Over Script** column should contain the entire narrative voice over covering the content that will be explained in the slide.\n"
             f"Give higher priority to user uploaded raw content. Don't make it too generic and keep it focused. "
-            f"Ensure a consistent flow, organize information into interactivities where necessary, and include knowledge checks where essential without them being too many.\n\n"
+            f"Ensure a consistent flow, organize information into interactivities where necessary, and include knowledge checks after every logical chunk of content coverage.\n\n"
             f"IMPORTANT: Provide the storyboard strictly as a CSV formatted table with exactly three columns: "
-            f"'Onscreen Text','Voice Over Script','Visualization Guidelines'."
+            f"'Onscreen Text','Voice Over Script','Visualization Guidelines'. Do not write any explanation before or after the CSV table. Directly start with the header row."
         )
 
         storyboard = get_openai_response(prompt, max_completion_tokens=20000)
@@ -371,69 +371,62 @@ def generate_storyboard():
             import pandas as pd
             import io
 
-            if "," in st.session_state.storyboard:
+            if "," in st.session_state.storyboard and "\n" in st.session_state.storyboard:
                 df_storyboard = pd.read_csv(io.StringIO(st.session_state.storyboard))
                 df_storyboard = df_storyboard.dropna(axis=1, how="all")
                 st.dataframe(df_storyboard.style.hide(axis="index"), use_container_width=True)
+
+                # Export to Word
+                from docx import Document
+                from docx.shared import Inches, Pt
+                from docx.oxml.ns import qn
+                from docx.oxml import OxmlElement
+                buffer = io.BytesIO()
+
+                doc = Document()
+                doc.add_heading('Storyboard', level=1)
+                table = doc.add_table(rows=1, cols=len(df_storyboard.columns))
+                table.style = 'Table Grid'
+                hdr_cells = table.rows[0].cells
+
+                for idx, col in enumerate(df_storyboard.columns):
+                    cell = hdr_cells[idx]
+                    cell.text = col
+                    for paragraph in cell.paragraphs:
+                        run = paragraph.runs[0]
+                        run.bold = True
+                        run.font.size = Pt(11)
+
+                for _, row in df_storyboard.iterrows():
+                    row_cells = table.add_row().cells
+                    for idx, val in enumerate(row):
+                        cell = row_cells[idx]
+                        paragraph = cell.paragraphs[0]
+                        run = paragraph.add_run(str(val))
+                        run.font.size = Pt(10)
+                        cell.width = Inches(2.0)
+
+                        tc = cell._tc
+                        tcPr = tc.get_or_add_tcPr()
+                        tcW = OxmlElement('w:tcW')
+                        tcW.set(qn('w:type'), 'auto')
+                        tcW.set(qn('w:w'), '0')
+                        tcPr.append(tcW)
+
+                doc.save(buffer)
+                buffer.seek(0)
+
+                st.download_button(
+                    label="\U0001F4C4 Download Storyboard as Word file",
+                    data=buffer,
+                    file_name="Storyboard.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
             else:
                 raise ValueError("Not a valid CSV structure.")
         except Exception as e:
             st.error(f"Storyboard parsing failed. Displaying raw text instead.")
             st.code(st.session_state.storyboard)
-
-        # Export to Word
-        from docx import Document
-        from docx.shared import Inches, Pt
-        from docx.oxml.ns import qn
-        from docx.oxml import OxmlElement
-        import io
-
-        try:
-            df_storyboard = pd.read_csv(io.StringIO(st.session_state.storyboard))
-            df_storyboard = df_storyboard.dropna(axis=1, how="all")
-
-            doc = Document()
-            doc.add_heading('Storyboard', level=1)
-            table = doc.add_table(rows=1, cols=len(df_storyboard.columns))
-            table.style = 'Table Grid'
-            hdr_cells = table.rows[0].cells
-
-            for idx, col in enumerate(df_storyboard.columns):
-                cell = hdr_cells[idx]
-                cell.text = col
-                for paragraph in cell.paragraphs:
-                    run = paragraph.runs[0]
-                    run.bold = True
-                    run.font.size = Pt(11)
-
-            for _, row in df_storyboard.iterrows():
-                row_cells = table.add_row().cells
-                for idx, val in enumerate(row):
-                    cell = row_cells[idx]
-                    paragraph = cell.paragraphs[0]
-                    run = paragraph.add_run(str(val))
-                    run.font.size = Pt(10)
-                    cell.width = Inches(2.0)
-
-                    tc = cell._tc
-                    tcPr = tc.get_or_add_tcPr()
-                    tcW = OxmlElement('w:tcW')
-                    tcW.set(qn('w:type'), 'auto')
-                    tcW.set(qn('w:w'), '0')
-                    tcPr.append(tcW)
-
-            buffer = io.BytesIO()
-            doc.save(buffer)
-            buffer.seek(0)
-
-            st.download_button(
-                label="\U0001F4C4 Download Storyboard as Word file",
-                data=buffer,
-                file_name="Storyboard.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            )
-        except Exception as e:
-            st.warning("\u26a0\ufe0f Storyboard could not be exported to Word. Error: " + str(e))
 
     # Approval form
     with st.form("approve_storyboard_form"):
@@ -441,7 +434,6 @@ def generate_storyboard():
         if submitted:
             st.session_state.step = 5
             st.rerun()
-
 
 
 # Step 5: Create Final Assessment
