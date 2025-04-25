@@ -335,59 +335,80 @@ def generate_outline():
 def generate_storyboard():
     st.header("Step 4: Generate Storyboard")
 
-    prompt = (
-        f"Create a storyboard for the e-learning course based on the following content outline and context information.\n\n"
-        f"**Content Outline:**\n{st.session_state.content_outline}\n\n"
-        f"**Context Information:**\n"
-        f"**Topic:** {st.session_state.context.get('topic')}\n"
-        f"**Audience Profile:** {st.session_state.context.get('audience_profile')}\n"
-        f"**Objectives:** {st.session_state.context.get('objectives')}\n"
-        f"**Duration:** {st.session_state.context.get('duration')}\n"
-        f"**Graded Final Assessment:** {st.session_state.context.get('graded_assessment')}\n"
-        f"**Additional Information:** {st.session_state.context.get('additional_info')}\n\n"
-        f"Strictly format the storyboard as a table with three columns: **Onscreen Text**, **Voice Over Script**, **Visualization Guidelines**."
-        f"Make sure that the **Onscreen Text** column in the table is NOT the slide title, but should contain key points that help convey the message of the slide. The **Voice Over Script** column should contain the entire narrative voice over covering the content that will be explained in the slide. Give higher priority to user uploaded raw content. Don't make it too generic and keep it focused. Ensure a consistent flow, organize information into interactivities where necessary, and include knowledge checks after every logical chunk of content coverage."
-          "\n\nIMPORTANT: Provide the storyboard strictly as a CSV formatted table with exactly three columns: "
-          "'Onscreen Text','Voice Over Script','Visualization Guidelines'."
+    # Ensure outline and context exist
+    context_summary = st.session_state.get("context_summary_persisted", "")
+    content_outline = st.session_state.get("content_outline", "")
+
+    if not content_outline:
+        st.error("No content outline found. Please complete Step 3 before proceeding.")
+        return
+
+    # Generate storyboard only if not already present
+    if "storyboard" not in st.session_state:
+        prompt = (
+            f"Create a storyboard for the e-learning course based on the following content outline and instructional design context.\n\n"
+            f"### Content Outline:\n{content_outline}\n\n"
+            f"### Instructional Design Context:\n{context_summary}\n\n"
+            f"Strictly format the storyboard as a table with three columns: **Onscreen Text**, **Voice Over Script**, **Visualization Guidelines**.\n"
+            f"Make sure that the **Onscreen Text** column in the table is NOT the slide title, but should contain key points that help convey the message of the slide.\n"
+            f"The **Voice Over Script** column should contain the entire narrative voice over covering the content that will be explained in the slide.\n"
+            f"Give higher priority to user uploaded raw content. Don't make it too generic and keep it focused. "
+            f"Ensure a consistent flow, organize information into interactivities where necessary, and include knowledge checks after every logical chunk of content coverage.\n\n"
+            f"IMPORTANT: Provide the storyboard strictly as a CSV formatted table with exactly three columns: "
+            f"'Onscreen Text','Voice Over Script','Visualization Guidelines'."
         )
 
-    storyboard = get_openai_response(prompt, max_completion_tokens=20000)
-    if storyboard:
-        st.session_state.storyboard = storyboard
-        st.write("### Generated Storyboard:")
+        storyboard = get_openai_response(prompt, max_completion_tokens=20000)
+        if storyboard:
+            st.session_state.storyboard = storyboard
 
+    # Display storyboard
+    if "storyboard" in st.session_state:
+        st.subheader("Generated Storyboard")
         try:
-            df_storyboard = pd.read_csv(io.StringIO(storyboard))
-            st.dataframe(df_storyboard)
+            import pandas as pd
+            import io
+            df_storyboard = pd.read_csv(io.StringIO(st.session_state.storyboard))
+            st.dataframe(df_storyboard, use_container_width=True)
         except Exception as e:
-            st.error(f"Parsing failed: {e}")
-            st.write("Raw CSV output below:")
-            st.code(storyboard)
+            st.error(f"Storyboard parsing failed: {e}")
+            st.code(st.session_state.storyboard)
 
-        cols = st.columns(2)
-        with cols[0]:
-            if st.button("Approve Storyboard and Continue"):
-                st.session_state.step = 5
-        with cols[1]:
-            if st.button("Modify Storyboard"):
-                st.warning("Modification functionality not implemented in this prototype.")
+    # Use a form to prevent premature rerun
+    with st.form("approve_storyboard_form"):
+        submitted = st.form_submit_button("Approve Storyboard and Continue", type="primary")
+        if submitted:
+            st.session_state.step = 5
+            st.rerun()
+
 
 # Step 5: Create Final Assessment
 def create_final_assessment():
     st.header("Step 5: Create Final Assessment")
 
-    # Retrieve the approved context summary
+    # Pull in context summary and outline
     context_summary = st.session_state.get("context_summary_persisted", "")
+    content_outline = st.session_state.get("content_outline", "")
 
-    # Check if the summary indicates a final graded assessment is needed
-    if "yes" in context_summary.lower() and "final assessment" in context_summary.lower():
-        # Use the content outline and context to create the assessment prompt
+    if not context_summary or not content_outline:
+        st.error("Missing context summary or content outline. Please complete earlier steps.")
+        return
+
+    # Helper: does the summary indicate a final graded assessment?
+    def context_mentions_graded_assessment(summary):
+        for line in summary.lower().splitlines():
+            if "graded final assessment" in line and "yes" in line:
+                return True
+        return False
+
+    if context_mentions_graded_assessment(context_summary):
         prompt = (
-            f"Based on the following instructional design context and the generated course outline, "
-            f"create a set of medium-difficulty final assessment questions for this e-learning course. For each question, provide the question stub, the options, and also a correct answer\n\n"
+            f"Based on the following instructional design context and course outline, generate a graded final assessment "
+            f"for this e-learning course.\n\n"
             f"### Instructional Design Context:\n{context_summary}\n\n"
-            f"### Content Outline:\n{st.session_state.content_outline}\n\n"
-            f"Ensure the questions are well-aligned with the learning objectives, and suitable for the audience profile. "
+            f"### Content Outline:\n{content_outline}\n\n"
+            f"Create multiple-choice questions aligned with the course objectives. "
+            f"Ensure moderate difficulty. Clearly label each question, include 3–4 options for MCQs, and mark the correct answer."
         )
 
         assessment = get_openai_response(prompt, max_tokens=1500)
@@ -409,6 +430,7 @@ def create_final_assessment():
             st.error("Failed to generate assessment. Please try again.")
     else:
         st.success("🎉 Instructional design process completed successfully!")
+
 
 
 # Main Application Flow
