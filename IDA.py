@@ -351,13 +351,9 @@ def generate_storyboard():
             f"Create a storyboard for the e-learning course based on the following content outline and instructional design context.\n\n"
             f"### Content Outline:\n{content_outline}\n\n"
             f"### Instructional Design Context:\n{context_summary}\n\n"
-            f"Strictly format the storyboard as a table with three columns: **Onscreen Text**, **Voice Over Script**, **Visualization Guidelines**.\n"
-            f"Make sure that the **Onscreen Text** column in the table is NOT the slide title, but should contain key points that help convey the message of the slide.\n"
-            f"The **Voice Over Script** column should contain the entire narrative voice over covering the content that will be explained in the slide.\n"
-            f"Give higher priority to user uploaded raw content. Don't make it too generic and keep it focused. "
-            f"Ensure a consistent flow, organize information into interactivities where necessary, and include knowledge checks after every logical chunk of content coverage.\n\n"
-            f"IMPORTANT: Provide the storyboard strictly as a CSV formatted table with exactly three columns: "
-            f"'Onscreen Text','Voice Over Script','Visualization Guidelines'. Do not write any explanation before or after the CSV table. Directly start with the header row."
+            f"Provide the storyboard as a table with three columns: Onscreen Text | Voice Over Script | Visualization Guidelines.\n"
+            f"Start immediately with the table header. Separate columns using a '|' (pipe symbol).\n"
+            f"Do not add any explanation before or after the table. Each row must be properly formatted without bullets or other formatting."
         )
 
         storyboard = get_openai_response(prompt, max_completion_tokens=20000)
@@ -371,9 +367,10 @@ def generate_storyboard():
             import pandas as pd
             import io
 
-            if "," in st.session_state.storyboard and "\n" in st.session_state.storyboard:
-                df_storyboard = pd.read_csv(io.StringIO(st.session_state.storyboard))
+            if "|" in st.session_state.storyboard and "\n" in st.session_state.storyboard:
+                df_storyboard = pd.read_csv(io.StringIO(st.session_state.storyboard), sep="|", engine="python", skiprows=2)
                 df_storyboard = df_storyboard.dropna(axis=1, how="all")
+                df_storyboard = df_storyboard.applymap(lambda x: x.strip() if isinstance(x, str) else x)
                 st.dataframe(df_storyboard.style.hide(axis="index"), use_container_width=True)
 
                 # Export to Word
@@ -423,7 +420,7 @@ def generate_storyboard():
                     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 )
             else:
-                raise ValueError("Not a valid CSV structure.")
+                raise ValueError("Not a valid table structure.")
         except Exception as e:
             st.error(f"Storyboard parsing failed. Displaying raw text instead.")
             st.code(st.session_state.storyboard)
