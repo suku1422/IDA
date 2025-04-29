@@ -458,7 +458,7 @@ def create_final_assessment():
         if match:
             duration = int(match.group(1))
             unit = match.group(2)
-            if \"hour\" in unit:
+            if "hour" in unit:
                 duration = duration * 60
             if duration < 30:
                 return 5
