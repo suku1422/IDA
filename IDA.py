@@ -320,7 +320,7 @@ def generate_outline():
         df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
         df.columns = ["Outline", "Duration (in mins)"]
 
-        st.dataframe(df.style.hide(axis="index"), use_container_width=True)
+        st.dataframe(df.reset_index(drop=True).style.hide(axis="index"), use_container_width=True)
     except Exception:
         st.warning("⚠️ Could not parse outline as a table. Showing raw content instead:")
         st.markdown(st.session_state.content_outline)
@@ -337,7 +337,6 @@ def generate_outline():
 def generate_storyboard():
     st.header("Step 4: Generate Storyboard")
 
-    # Ensure outline and context exist
     context_summary = st.session_state.get("context_summary_persisted", "")
     content_outline = st.session_state.get("content_outline", "")
 
@@ -345,7 +344,6 @@ def generate_storyboard():
         st.error("No content outline found. Please complete Step 3 before proceeding.")
         return
 
-    # Generate storyboard only if not already present
     if "storyboard" not in st.session_state:
         prompt = (
             f"Create a storyboard for the e-learning course based on the following content outline and instructional design context.\n\n"
@@ -360,48 +358,46 @@ def generate_storyboard():
         if storyboard:
             st.session_state.storyboard = storyboard
 
-    # Display storyboard
     if "storyboard" in st.session_state:
         st.subheader("Generated Storyboard")
-        try:
-            import pandas as pd
-            import io
+        st.code(st.session_state.storyboard)
 
-            if "|" in st.session_state.storyboard and "\n" in st.session_state.storyboard:
-                df_storyboard = pd.read_csv(io.StringIO(st.session_state.storyboard), sep="|", engine="python", skiprows=2)
-                df_storyboard = df_storyboard.dropna(axis=1, how="all")
-                df_storyboard = df_storyboard.applymap(lambda x: x.strip() if isinstance(x, str) else x)
-                st.dataframe(df_storyboard.style.hide(axis="index"), use_container_width=True)
+        # Export to Word
+        from docx import Document
+        from docx.shared import Pt, Inches
+        from docx.oxml.ns import qn
+        from docx.oxml import OxmlElement
+        import io
 
-                # Export to Word
-                from docx import Document
-                from docx.shared import Inches, Pt
-                from docx.oxml.ns import qn
-                from docx.oxml import OxmlElement
-                buffer = io.BytesIO()
+        lines = st.session_state.storyboard.strip().split("\n")
 
-                doc = Document()
-                doc.add_heading('Storyboard', level=1)
-                table = doc.add_table(rows=1, cols=len(df_storyboard.columns))
-                table.style = 'Table Grid'
-                hdr_cells = table.rows[0].cells
+        if len(lines) >= 2:
+            buffer = io.BytesIO()
+            doc = Document()
+            doc.add_heading('Storyboard', level=1)
 
-                for idx, col in enumerate(df_storyboard.columns):
-                    cell = hdr_cells[idx]
-                    cell.text = col
-                    for paragraph in cell.paragraphs:
-                        run = paragraph.runs[0]
-                        run.bold = True
-                        run.font.size = Pt(11)
+            headers = [h.strip() for h in lines[0].split("|") if h.strip()]
+            table = doc.add_table(rows=1, cols=len(headers))
+            table.style = 'Table Grid'
+            table.autofit = True
+            hdr_cells = table.rows[0].cells
+            for idx, col in enumerate(headers):
+                cell = hdr_cells[idx]
+                cell.text = col
+                for paragraph in cell.paragraphs:
+                    run = paragraph.runs[0]
+                    run.bold = True
+                    run.font.size = Pt(11)
 
-                for _, row in df_storyboard.iterrows():
+            for line in lines[2:]:
+                columns = [c.strip() for c in line.split("|") if c.strip()]
+                if len(columns) == len(headers):
                     row_cells = table.add_row().cells
-                    for idx, val in enumerate(row):
+                    for idx, val in enumerate(columns):
                         cell = row_cells[idx]
                         paragraph = cell.paragraphs[0]
                         run = paragraph.add_run(str(val))
                         run.font.size = Pt(10)
-                        cell.width = Inches(2.0)
 
                         tc = cell._tc
                         tcPr = tc.get_or_add_tcPr()
@@ -410,22 +406,18 @@ def generate_storyboard():
                         tcW.set(qn('w:w'), '0')
                         tcPr.append(tcW)
 
-                doc.save(buffer)
-                buffer.seek(0)
+            doc.save(buffer)
+            buffer.seek(0)
 
-                st.download_button(
-                    label="\U0001F4C4 Download Storyboard as Word file",
-                    data=buffer,
-                    file_name="Storyboard.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                )
-            else:
-                raise ValueError("Not a valid table structure.")
-        except Exception as e:
-            st.error(f"Storyboard parsing failed. Displaying raw text instead.")
-            st.code(st.session_state.storyboard)
+            st.download_button(
+                label="\U0001F4C4 Download Storyboard as Word file",
+                data=buffer,
+                file_name="Storyboard.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
+        else:
+            st.error("Storyboard format not valid. Cannot export to Word.")
 
-    # Approval form
     with st.form("approve_storyboard_form"):
         submitted = st.form_submit_button("Approve Storyboard and Continue", type="primary")
         if submitted:
@@ -433,11 +425,13 @@ def generate_storyboard():
             st.rerun()
 
 
+
 # Step 5: Create Final Assessment
+import re
+
 def create_final_assessment():
     st.header("Step 5: Create Final Assessment")
 
-    # Pull in context summary and outline
     context_summary = st.session_state.get("context_summary_persisted", "")
     content_outline = st.session_state.get("content_outline", "")
 
@@ -445,40 +439,67 @@ def create_final_assessment():
         st.error("Missing context summary or content outline. Please complete earlier steps.")
         return
 
-    # Helper: does the summary indicate a final graded assessment?
-    def context_mentions_graded_assessment(summary):
-        for line in summary.lower().splitlines():
-            if "graded final assessment" in line and "yes" in line:
-                return True
-        return False
+    # Helper 1: Check if assessment needed
+    def context_mentions_assessment(summary):
+        summary = summary.lower()
+        return "final assessment" in summary and "yes" in summary
 
-    if context_mentions_graded_assessment(context_summary):
+    # Helper 2: Try extracting number of questions
+    def extract_num_questions(summary):
+        match = re.search(r"(\\d+)\\s*(questions|mcqs|multiple choice)", summary.lower())
+        if match:
+            return int(match.group(1))
+        else:
+            return None
+
+    # Helper 3: Estimate based on course duration
+    def estimate_questions_from_duration(summary):
+        match = re.search(r"duration\\s*[:\\-]\\s*(\\d+)\\s*(minutes|min|hours|hrs)", summary.lower())
+        if match:
+            duration = int(match.group(1))
+            unit = match.group(2)
+            if \"hour\" in unit:
+                duration = duration * 60
+            if duration < 30:
+                return 5
+            elif duration < 60:
+                return 8
+            elif duration < 120:
+                return 12
+            else:
+                return 15
+        else:
+            return 8  # fallback default
+
+    if context_mentions_assessment(context_summary):
+        num_questions = extract_num_questions(context_summary)
+        if not num_questions:
+            num_questions = estimate_questions_from_duration(context_summary)
+
+        # 🔔 Carefully updated PROMPT (called out):
         prompt = (
-            f"Based on the following instructional design context and course outline, generate a graded final assessment "
+            f"Based on the following instructional design context and content outline, generate a final assessment "
             f"for this e-learning course.\n\n"
             f"### Instructional Design Context:\n{context_summary}\n\n"
             f"### Content Outline:\n{content_outline}\n\n"
-            f"Create multiple-choice questions aligned with the course objectives. "
-            f"Ensure moderate difficulty. Clearly label each question, include 3–4 options for MCQs, and mark the correct answer."
+            f"Create {num_questions} multiple-choice questions.\n"
+            f"Each MCQ must have appropriate number of answer options, and should clearly indicate the correct option.\n"
+            f"Ensure questions align with the course objectives and learning content.\n"
+            f"Do not add any explanation text or headings before or after the questions."
         )
 
         assessment = get_openai_response(prompt, max_tokens=1500)
         if assessment:
             st.session_state.final_assessment = assessment
-            st.subheader("Final Assessment Questions")
-            st.markdown("```")
-            st.write(assessment)
-            st.markdown("```")
+            st.subheader("Generated Final Assessment")
+            st.code(assessment)
 
-            cols = st.columns(2)
-            with cols[0]:
-                if st.button("Approve Assessment"):
+            with st.form("approve_assessment_form"):
+                approved = st.form_submit_button("Approve Final Assessment", type="primary")
+                if approved:
                     st.success("🎉 Instructional design process completed successfully!")
-            with cols[1]:
-                if st.button("Modify Assessment"):
-                    st.warning("Modification functionality not implemented in this prototype.")
         else:
-            st.error("Failed to generate assessment. Please try again.")
+            st.error("Failed to generate final assessment. Please retry.")
     else:
         st.success("🎉 Instructional design process completed successfully!")
 
