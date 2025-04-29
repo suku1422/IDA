@@ -198,9 +198,10 @@ def analyze_content():
             st.error(f"Error reading uploaded file: {e}")
             return
 
+        # Store the uploaded content in session state under both keys
         st.session_state.raw_text = raw_text
+        st.session_state.uploaded_content = raw_text  # ✅ for Step 3 compatibility
 
-        
         context_summary = st.session_state.get("context_summary", "No context summary available.")
 
         prompt = (
@@ -209,8 +210,8 @@ def analyze_content():
             f"Here is the raw content:\n{raw_text}\n\n"
             f"Identify any content gaps in the raw content based on the provided context.Don't make it very elaborate and focus on the duration indicated by the user in {context_summary} "
             f"List the missing topics or areas that need to be covered in the course."
-)
-        
+        )
+
         analysis = get_openai_response(prompt)
         st.session_state.analysis = analysis
 
@@ -223,7 +224,7 @@ def analyze_content():
             "How would you like to address the content gaps?",
             options=("Generate content to fill gaps", "Provide additional sources", "No action needed"),
             index=2  # 👈 third option is selected by default
-)
+        )
 
         if decision == "Generate content to fill gaps":
             filled_prompt = (
@@ -234,6 +235,7 @@ def analyze_content():
             filled_content = get_openai_response(filled_prompt)
             if filled_content:
                 st.session_state.filled_content = filled_content
+                st.session_state.generated_additional_content = filled_content  # ✅ for Step 3 compatibility
                 st.success("Content gaps have been filled with generated material.")
                 if st.button("Continue to Step 3"):
                     st.session_state.step = 3
@@ -259,6 +261,7 @@ def analyze_content():
 
     else:
         st.info("Please upload at least one raw content file to begin analysis.")
+
 
 
 
