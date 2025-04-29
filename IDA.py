@@ -207,7 +207,7 @@ def analyze_content():
             f"Analyze the following instructional design context and raw content to identify content gaps.\n\n"
             f"Here is the instructional design context:\n{context_summary}\n\n"
             f"Here is the raw content:\n{raw_text}\n\n"
-            f"Identify any content gaps in the raw content based on the provided context. "
+            f"Identify any content gaps in the raw content based on the provided context.Don't make it very elaborate and focus on the duration indicated by the user in {context_summary} "
             f"List the missing topics or areas that need to be covered in the course."
 )
         
@@ -266,71 +266,54 @@ def analyze_content():
 def generate_outline():
     st.header("Step 3: Generate Content Outline")
 
-    # Ensure context summary is available
-    context_summary = st.session_state.get("context_summary_persisted")
+    context_summary = st.session_state.get("context_summary_persisted", "")
+    uploaded_content = st.session_state.get("uploaded_content", "")
+    generated_content = st.session_state.get("generated_additional_content", "")
+
     if not context_summary:
-        st.error("Context summary not found. Please complete Step 1 before generating an outline.")
+        st.error("Context summary not available. Please complete Step 1.")
         return
 
-    prompt = (
-        f"Based on the following instructional design context, generate a detailed content outline "
-        f"for the e-learning course.\n\n"
-        f"{context_summary}\n\n"
-        f"Return the outline strictly as a markdown table with two columns: 'Outline' and 'Duration'. "
-        f"Do not use bullet points. Each row should contain one topic or sub-topic and its estimated duration in minutes."
-    )
+    if not uploaded_content and not generated_content:
+        st.error("No content available. Please upload content or choose to generate content in Step 2.")
+        return
 
-    if 'filled_content' in st.session_state:
-        prompt += "\n\nInclude and build on the following content which fills earlier gaps:\n"
-        prompt += st.session_state.filled_content
-    elif "raw_text" in st.session_state:
-        prompt += "\n\nAlso refer to the uploaded raw content:\n"
-        prompt += st.session_state.raw_text[:1500]
+    combined_content = uploaded_content.strip()
+    if generated_content:
+        combined_content += f"\n\n{generated_content.strip()}"
 
-    if st.session_state.content_outline is None:
+    if "content_outline" not in st.session_state:
+        prompt = (
+            f"Based on the following instructional design context and source content, generate a structured content outline. Make sure that the duration indicated by the user in context_summary_persisted is adhered to when the duration in the outline is generated "
+            f"for the e-learning course.\n\n"
+            f"### Instructional Design Context:\n{context_summary}\n\n"
+            f"### Source Content:\n{combined_content}\n\n"
+            f"Present the content outline as a table with two columns: Outline | Duration (in mins).\n"
+            f"Do not add bullets or explanations before or after the table."
+        )
         outline = get_openai_response(prompt)
         if outline:
             st.session_state.content_outline = outline
 
-    st.subheader("Generated Content Outline")
-
-    # CSS for wrapped columns and button styling
-    st.markdown("""
-        <style>
-            .streamlit-expanderHeader {
-                font-weight: bold;
-            }
-            .dataframe td {
-                white-space: normal !important;
-                word-wrap: break-word !important;
-            }
-            button:focus {
-                outline: none !important;
-                box-shadow: none !important;
-            }
-        </style>
-    """, unsafe_allow_html=True)
-
-    try:
-        import pandas as pd
-        import io
-
-        df = pd.read_csv(io.StringIO(st.session_state.content_outline), sep="|", engine="python", skiprows=2)
-        df = df.dropna(axis=1, how="all")
-        df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
-        df.columns = ["Outline", "Duration (in mins)"]
-
-        st.dataframe(df.reset_index(drop=True).style.hide(axis="index"), use_container_width=True)
-    except Exception:
-        st.warning("⚠️ Could not parse outline as a table. Showing raw content instead:")
-        st.markdown(st.session_state.content_outline)
-
+    if "content_outline" in st.session_state:
+        st.subheader("Generated Content Outline")
+        try:
+            import pandas as pd
+            import io
+            df = pd.read_csv(io.StringIO(st.session_state.content_outline), sep="|")
+            df.columns = [col.strip() for col in df.columns]
+            df.insert(0, "S. No.", range(1, len(df) + 1))  # Serial numbers starting from 1
+            st.dataframe(df.style.hide(axis="index"), use_container_width=True)
+        except Exception as e:
+            st.error("Could not parse outline as table. Showing raw text.")
+            st.code(st.session_state.content_outline)
 
     with st.form("approve_outline_form"):
-        submitted = st.form_submit_button("Approve Outline and Continue", type="primary")
-        if submitted:
+        proceed = st.form_submit_button("Approve Outline and Continue", type="primary")
+        if proceed:
             st.session_state.step = 4
             st.rerun()
+
 
 
 # Step 4: Generate Storyboard
@@ -339,18 +322,26 @@ def generate_storyboard():
 
     context_summary = st.session_state.get("context_summary_persisted", "")
     content_outline = st.session_state.get("content_outline", "")
+    uploaded_content = st.session_state.get("uploaded_content", "")
+    generated_content = st.session_state.get("generated_additional_content", "")
 
     if not content_outline:
         st.error("No content outline found. Please complete Step 3 before proceeding.")
         return
 
+    combined_content = uploaded_content.strip()
+    if generated_content:
+        combined_content += f"\n\n{generated_content.strip()}"
+
     if "storyboard" not in st.session_state:
         prompt = (
-            f"Create a storyboard for the e-learning course based on the following content outline and instructional design context.\n\n"
-            f"### Content Outline:\n{content_outline}\n\n"
+            f"Create a storyboard that follows instructional design theories, for the e-learning course based on the following instructional design context, content outline, and source content.\n\n"
             f"### Instructional Design Context:\n{context_summary}\n\n"
+            f"### Content Outline:\n{content_outline}\n\n"
+            f"### Source Content:\n{combined_content}\n\n"
             f"Provide the storyboard as a table with three columns: Onscreen Text | Voice Over Script | Visualization Guidelines.\n"
             f"Start immediately with the table header. Separate columns using a '|' (pipe symbol).\n"
+            f"Make sure that the Onscreen text column contains the entire text we want to include in the slide, not just slide titles. In the Voice over script column, include the entire narrative voice over script, not just an introduction.\n"
             f"Do not add any explanation before or after the table. Each row must be properly formatted without bullets or other formatting."
         )
 
@@ -358,9 +349,11 @@ def generate_storyboard():
         if storyboard:
             st.session_state.storyboard = storyboard
 
-    if "storyboard" in st.session_state:
+    storyboard_text = st.session_state.get("storyboard", "")
+
+    if storyboard_text:
         st.subheader("Generated Storyboard")
-        st.code(st.session_state.storyboard)
+        st.code(storyboard_text)
 
         # Export to Word
         from docx import Document
@@ -369,7 +362,7 @@ def generate_storyboard():
         from docx.oxml import OxmlElement
         import io
 
-        lines = st.session_state.storyboard.strip().split("\n")
+        lines = storyboard_text.strip().split("\n")
 
         if len(lines) >= 2:
             buffer = io.BytesIO()
@@ -417,12 +410,16 @@ def generate_storyboard():
             )
         else:
             st.error("Storyboard format not valid. Cannot export to Word.")
+    else:
+        st.error("Storyboard could not be generated. Please retry.")
 
     with st.form("approve_storyboard_form"):
         submitted = st.form_submit_button("Approve Storyboard and Continue", type="primary")
         if submitted:
             st.session_state.step = 5
             st.rerun()
+
+
 
 
 
