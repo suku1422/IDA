@@ -342,6 +342,7 @@ def generate_storyboard():
             f"Provide the storyboard as a table with three columns: Onscreen Text | Voice Over Script | Visualization Guidelines.\n"
             f"Start immediately with the table header. Separate columns using a '|' (pipe symbol).\n"
             f"Make sure that the Onscreen text column contains the entire text we want to include in the slide, not just slide titles. In the Voice over script column, include the entire narrative voice over script, not just an introduction.\n"
+            f"Let knowledge checks not be too many. Also when knowledge checks are used include all the details - the question, the answer options, the correct answer and also correct and wrong answer feedback. \n"
             f"Do not add any explanation before or after the table. Each row must be properly formatted without bullets or other formatting."
         )
 
