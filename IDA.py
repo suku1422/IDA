@@ -292,6 +292,7 @@ def generate_outline():
             f"### Instructional Design Context:\n{context_summary}\n\n"
             f"### Source Content:\n{combined_content}\n\n"
             f"Present the content outline as a table with two columns: Outline | Duration (in mins).\n"
+            f"Start immediately with the table header. Separate columns using a '|' (pipe symbol).\n"
             f"Do not add bullets or explanations before or after the table."
         )
         outline = get_openai_response(prompt)
