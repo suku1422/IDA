@@ -305,9 +305,36 @@ def generate_outline():
             import pandas as pd
             import io
             df = pd.read_csv(io.StringIO(st.session_state.content_outline), sep="|")
+
+            # Clean headers
             df.columns = [col.strip() for col in df.columns]
-            df.insert(0, "S. No.", range(1, len(df) + 1))  # Serial numbers starting from 1
-            st.dataframe(df.style.hide(axis="index"), use_container_width=True)
+
+            # Drop any unnamed/empty columns
+            df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
+
+            # Retain only the last two columns (in case extra sneaked in)
+            if df.shape[1] > 2:
+                df = df.iloc[:, -2:]
+
+            # Rename headers to exactly what we want
+            df.columns = ["Outline", "Duration (in mins)"]
+
+            # Wrap long text inside cells
+            st.markdown(
+                """
+                <style>
+                .stDataFrame td {
+                    white-space: pre-wrap !important;
+                    word-break: break-word !important;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True
+            )
+
+            # Display the table without index
+            st.dataframe(df, use_container_width=True)
+
         except Exception as e:
             st.error("Could not parse outline as table. Showing raw text.")
             st.code(st.session_state.content_outline)
@@ -337,7 +364,7 @@ def generate_storyboard():
     if generated_content:
         combined_content += f"\n\n{generated_content.strip()}"
 
-    if "storyboard" not in st.session_state:
+    if not st.session_state.get("storyboard"):
         prompt = (
             f"Create a storyboard that follows instructional design theories, for the e-learning course based on the following instructional design context, content outline, and source content.\n\n"
             f"### Instructional Design Context:\n{context_summary}\n\n"
