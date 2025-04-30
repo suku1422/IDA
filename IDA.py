@@ -407,6 +407,9 @@ def generate_storyboard():
                 """,
                 unsafe_allow_html=True
             )
+            except Exception:
+                st.error("Could not render storyboard as table. Showing raw text.")
+                st.code(st.session_state.storyboard)
 
             st.dataframe(df, use_container_width=True)
             
