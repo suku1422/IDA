@@ -312,6 +312,9 @@ def generate_outline():
             # Drop any unnamed/empty columns
             df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
 
+            # Reset index to remove auto-numbering from display
+            df = df.reset_index(drop=True)
+            
             # Retain only the last two columns (in case extra sneaked in)
             if df.shape[1] > 2:
                 df = df.iloc[:, -2:]
@@ -385,8 +388,28 @@ def generate_storyboard():
 
     if storyboard_text:
         st.subheader("Generated Storyboard")
-        st.code(storyboard_text)
+        import io
+        import pandas as pd
+        try:
+            df = pd.read_csv(io.StringIO(st.session_state.storyboard), sep="|")
+            df.columns = [col.strip() for col in df.columns]
+            df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
+            df = df.reset_index(drop=True)
 
+            st.markdown(
+                """
+                <style>
+                .stDataFrame td {
+                    white-space: pre-wrap !important;
+                    word-break: break-word !important;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True
+            )
+
+            st.dataframe(df, use_container_width=True)
+            
         # Export to Word
         from docx import Document
         from docx.shared import Pt, Inches
@@ -517,7 +540,7 @@ def create_final_assessment():
             f"Do not add any explanation text or headings before or after the questions."
         )
 
-        assessment = get_openai_response(prompt, max_tokens=1500)
+        assessment = get_openai_response(prompt, max_completion_tokens=1500)
         if assessment:
             st.session_state.final_assessment = assessment
             st.subheader("Generated Final Assessment")
