@@ -285,7 +285,7 @@ def generate_outline():
     if generated_content:
         combined_content += f"\n\n{generated_content.strip()}"
 
-     if not st.session_state.get("content_outline"):
+    if not st.session_state.get("content_outline"):
         prompt = (
             f"Based on the following instructional design context and source content, generate a structured content outline. Make sure that the duration indicated by the user in context_summary_persisted is adhered to when the duration in the outline is generated "
             f"for the e-learning course.\n\n"
