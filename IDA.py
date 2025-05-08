@@ -63,6 +63,7 @@ def gather_context():
             {"role": "system", "content": (
                 "You are an instructional design assistant. Your goal is to collect all essential details such as the topic, audience profile (like age profile, education and experience), key learning outcomes, mode of learning (instructor lead or self paced), duration of the course, whether the user has raw content for the course, whether a final assessment and knowledge checks are needed and any other information the user has about the context, required to design an e-learning course. "
                 "You can ask a maximum of 7 questions so prioritize the questions on its importance. Ask only one question at a time. If the response needs clarification, ask a follow-up which won't be counted in the 7 questions. "
+                "The moment you get a response for a question, analyze it and see if there is a follow-up question needed to understand the context better. If yes, present that question. Don't ask too many questions but if the user's response is not clear, do not hesitate to ask." 
                 "Once the answer is sufficient, move to the next key topic. Keep the conversation smooth and engaging."
             )}
         ]
