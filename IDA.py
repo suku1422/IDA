@@ -98,12 +98,13 @@ def gather_context():
                         + "\n\nBased on the context gathered, ask the next most relevant question needed to design the course. "
                         "There is a limit of 6 questions, so prioritize the most important ones."
                     )
-                    next_question = get_openai_response(prompt)
-                    if next_question:
-                        st.session_state.current_question = next_question
-                        st.session_state.conversation_history.append({"role": "assistant", "content": next_question})
-                    else:
-                        st.session_state.context_complete = True
+                    with st.spinner("Generating next question..."):
+                        next_question = get_openai_response(prompt)
+                        if next_question:
+                            st.session_state.current_question = next_question
+                            st.session_state.conversation_history.append({"role": "assistant", "content": next_question})
+                        else:
+                            st.session_state.context_complete = True
 
                 # Force a rerun so the input box gets refreshed
                 st.rerun()
@@ -119,9 +120,10 @@ def gather_context():
             "Return the result as a two-column table with headers 'Aspect' and 'Summary'.\n\n"
             f"Context:\n{st.session_state.context}"
         )
-        summary_result = get_openai_response(summary_prompt)
-        st.session_state.context_summary = summary_result
-        st.session_state.context_summary_persisted = summary_result
+        with st.spinner("Summarizing context..."):
+            summary_result = get_openai_response(summary_prompt)
+            st.session_state.context_summary = summary_result
+            st.session_state.context_summary_persisted = summary_result
 
     if st.session_state.context_complete and "context_summary" in st.session_state:
         st.subheader("✅ Summary of Collected Context")
@@ -211,10 +213,11 @@ def analyze_content():
                 f"Identify any content gaps in the raw content based on the provided context. Don't make it very elaborate and focus on the duration indicated by the user in {context_summary}. "
                 f"List the missing topics or areas that need to be covered in the course."
             )
-            analysis = get_openai_response(prompt)
-            st.session_state.analysis = analysis
-            st.session_state.analysis_done = True
-            st.session_state.uploaded_content = raw_text
+            with st.spinner("Analyzing content gaps..."):
+                analysis = get_openai_response(prompt)
+                st.session_state.analysis = analysis
+                st.session_state.analysis_done = True
+                st.session_state.uploaded_content = raw_text
 
         st.subheader("Content Gap Analysis")
         st.write(st.session_state.analysis)
@@ -231,14 +234,15 @@ def analyze_content():
                 f"**Content Gaps:**\n{st.session_state.analysis}\n\n"
                 f"Provide the additional content required to cover these areas effectively."
             )
-            filled_content = get_openai_response(filled_prompt)
-            if filled_content:
-                st.session_state.filled_content = filled_content
-                st.session_state.generated_additional_content = filled_content
-                st.success("Content gaps have been filled with generated material.")
-                if st.button("Continue to Step 3"):
-                    st.session_state.step = 3
-                    st.rerun()
+            with st.spinner("Generating additional content..."):
+                filled_content = get_openai_response(filled_prompt)
+                if filled_content:
+                    st.session_state.filled_content = filled_content
+                    st.session_state.generated_additional_content = filled_content
+                    st.success("Content gaps have been filled with generated material.")
+                    if st.button("Continue to Step 3"):
+                        st.session_state.step = 3
+                        st.rerun()
 
         elif decision == "Provide additional sources":
             more_files = st.file_uploader(
@@ -292,9 +296,10 @@ def generate_outline():
             f"Start immediately with the table header. Separate columns using a '|' (pipe symbol).\n"
             f"Do not add bullets or explanations before or after the table."
         )
-        outline = get_openai_response(prompt)
-        if outline:
-            st.session_state.content_outline = outline
+        with st.spinner("Generating content outline..."):
+            outline = get_openai_response(prompt)
+            if outline:
+                st.session_state.content_outline = outline
 
     if "content_outline" in st.session_state:
         st.subheader("Generated Content Outline")
@@ -377,9 +382,10 @@ def generate_storyboard():
             f"Do not add any explanation before or after the table. Each row must be properly formatted without bullets or other formatting."
         )
 
-        storyboard = get_openai_response(prompt, max_completion_tokens=20000)
-        if storyboard:
-            st.session_state.storyboard = storyboard
+        with st.spinner("Generating storyboard..."):
+            storyboard = get_openai_response(prompt, max_completion_tokens=20000)
+            if storyboard:
+                st.session_state.storyboard = storyboard
 
     storyboard_text = st.session_state.get("storyboard", "")
 
@@ -552,7 +558,8 @@ def create_final_assessment():
         f"Ensure questions align with the course objectives and learning content.\n"
         f"Do not add any explanation text or headings before or after the questions."
     )
-    assessment = get_openai_response(prompt, max_completion_tokens=4500)
+    with st.spinner("Generating final assessment..."):
+        assessment = get_openai_response(prompt, max_completion_tokens=4500)
 
     if assessment:
         st.markdown("### Final Assessment")
@@ -573,6 +580,10 @@ def create_final_assessment():
             file_name="final_assessment.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
+    
+        st.success("🎉 Instructional design process completed successfully!")
+        st.session_state.step = None
+                
     else:
         st.error("Failed to generate final assessment. Please retry.")
         st.error("Failed to generate final assessment. Please retry.")
