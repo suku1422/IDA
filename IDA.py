@@ -166,10 +166,14 @@ def gather_context():
                 st.rerun()
 
 # Step 2: Analyze Raw Content
+import re
+from your_module import get_openai_response
+from docx import Document
+from io import BytesIO
+
 def analyze_content():
     st.header("Step 2: Analyze Raw Content")
 
-    # Upload area
     uploaded_files = st.file_uploader(
         "Upload raw content files (PDF, DOCX, TXT)", 
         type=["pdf", "docx", "txt"], 
@@ -178,7 +182,6 @@ def analyze_content():
 
     if uploaded_files:
         raw_text = ""
-
         try:
             for uploaded_file in uploaded_files:
                 if uploaded_file.type == "application/pdf":
@@ -199,44 +202,38 @@ def analyze_content():
             st.error(f"Error reading uploaded file: {e}")
             return
 
-        # Store the uploaded content in session state under both keys
-        st.session_state.raw_text = raw_text
-        st.session_state.uploaded_content = raw_text  # ✅ for Step 3 compatibility
+        if "raw_text" not in st.session_state or st.session_state.raw_text != raw_text:
+            st.session_state.raw_text = raw_text
+            context_summary = st.session_state.get("context_summary", "No context summary available.")
+            prompt = (
+                f"Analyze the following instructional design context and raw content to identify content gaps.\n\n"
+                f"Here is the instructional design context:\n{context_summary}\n\n"
+                f"Here is the raw content:\n{raw_text}\n\n"
+                f"Identify any content gaps in the raw content based on the provided context. Don't make it very elaborate and focus on the duration indicated by the user in {context_summary}. "
+                f"List the missing topics or areas that need to be covered in the course."
+            )
+            analysis = get_openai_response(prompt)
+            st.session_state.analysis = analysis
 
-        context_summary = st.session_state.get("context_summary", "No context summary available.")
-
-        prompt = (
-            f"Analyze the following instructional design context and raw content to identify content gaps.\n\n"
-            f"Here is the instructional design context:\n{context_summary}\n\n"
-            f"Here is the raw content:\n{raw_text}\n\n"
-            f"Identify any content gaps in the raw content based on the provided context.Don't make it very elaborate and focus on the duration indicated by the user in {context_summary} "
-            f"List the missing topics or areas that need to be covered in the course."
-        )
-
-        analysis = get_openai_response(prompt)
-        st.session_state.analysis = analysis
-
-        # Show results
         st.subheader("Content Gap Analysis")
-        st.write(analysis)
+        st.write(st.session_state.analysis)
 
-        # Let user choose what to do
         decision = st.radio(
             "How would you like to address the content gaps?",
             options=("Generate content to fill gaps", "Provide additional sources", "No action needed"),
-            index=2  # 👈 third option is selected by default
+            index=2
         )
 
         if decision == "Generate content to fill gaps":
             filled_prompt = (
                 f"Based on the identified content gaps below, generate the necessary content to fill these gaps.\n\n"
-                f"**Content Gaps:**\n{analysis}\n\n"
+                f"**Content Gaps:**\n{st.session_state.analysis}\n\n"
                 f"Provide the additional content required to cover these areas effectively."
             )
             filled_content = get_openai_response(filled_prompt)
             if filled_content:
                 st.session_state.filled_content = filled_content
-                st.session_state.generated_additional_content = filled_content  # ✅ for Step 3 compatibility
+                st.session_state.generated_additional_content = filled_content
                 st.success("Content gaps have been filled with generated material.")
                 if st.button("Continue to Step 3"):
                     st.session_state.step = 3
@@ -244,9 +241,9 @@ def analyze_content():
 
         elif decision == "Provide additional sources":
             more_files = st.file_uploader(
-                "Upload additional files to improve coverage", 
-                type=["pdf", "docx", "txt"], 
-                accept_multiple_files=True, 
+                "Upload additional files to improve coverage",
+                type=["pdf", "docx", "txt"],
+                accept_multiple_files=True,
                 key="more_sources"
             )
             if more_files:
@@ -259,9 +256,9 @@ def analyze_content():
             if st.button("Continue to Step 3"):
                 st.session_state.step = 3
                 st.rerun()
-
     else:
         st.info("Please upload at least one raw content file to begin analysis.")
+
 
 
 
@@ -486,9 +483,9 @@ def generate_storyboard():
 
 # Step 5: Create Final Assessment
 import re
+from your_module import get_openai_response
 from docx import Document
 from io import BytesIO
-
 
 def create_final_assessment():
     st.header("Step 5: Create Final Assessment")
@@ -511,12 +508,7 @@ def create_final_assessment():
         st.success("🎉 Instructional design process completed successfully without final assessment.")
         return
 
-   # Helper 1: Check if assessment needed
-    def context_mentions_assessment(summary):
-        summary = summary.lower()
-        return "final assessment" in summary and "yes" in summary
-
-    # Helper 2: Try extracting number of questions
+    # Helper 2: Try extracting number of questions (from original code)
     def extract_num_questions(summary):
         match = re.search(r"(\\d+)\\s*(questions|mcqs|multiple choice)", summary.lower())
         if match:
@@ -524,7 +516,7 @@ def create_final_assessment():
         else:
             return None
 
-    # Helper 3: Estimate based on course duration
+    # Helper 3: Estimate based on course duration (from original code)
     def estimate_questions_from_duration(summary):
         match = re.search(r"duration\\s*[:\\-]\\s*(\\d+)\\s*(minutes|min|hours|hrs)", summary.lower())
         if match:
@@ -543,10 +535,9 @@ def create_final_assessment():
         else:
             return 8  # fallback default
 
-    if context_mentions_assessment(context_summary):
-        num_questions = extract_num_questions(context_summary)
-        if not num_questions:
-            num_questions = estimate_questions_from_duration(context_summary)
+    num_questions = extract_num_questions(context_summary)
+    if not num_questions:
+        num_questions = estimate_questions_from_duration(context_summary)
 
     prompt = (
         f"Based on the following instructional design context and content outline, generate a final assessment for this e-learning course.\n\n"
@@ -579,6 +570,7 @@ def create_final_assessment():
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
     else:
+        st.error("Failed to generate final assessment. Please retry.")
         st.error("Failed to generate final assessment. Please retry.")
 
 
