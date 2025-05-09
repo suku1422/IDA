@@ -588,7 +588,7 @@ def create_final_assessment():
         if downloaded:
             st.success("🎉 Instructional design process completed successfully!")
             st.session_state.step = None
-            st.rerun
+            st.rerun()
         
     else:
         st.error("Failed to generate final assessment. Please retry.")
