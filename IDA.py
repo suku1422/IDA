@@ -482,7 +482,6 @@ def generate_storyboard():
 
 # Step 5: Create Final Assessment
 import re
-from your_module import get_openai_response
 from docx import Document
 from io import BytesIO
 
