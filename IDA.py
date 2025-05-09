@@ -496,12 +496,18 @@ def create_final_assessment():
         return
 
     # Ask user if they want to generate the final assessment
-    proceed = st.radio(
-        "Do you want to generate the final assessment?",
-        ("Yes, generate assessment", "No, finish here"),
-        index=0
-    )
-
+    with st.form("assessment_form"):
+        proceed = st.radio(
+            "Do you want to generate the final assessment?",
+            ("Yes, generate assessment", "No, finish here"),
+            index=0
+        )
+        submitted = st.form_submit_button("Continue")
+    
+    if not submitted:
+    st.stop()
+    
+      
     if proceed == "No, finish here":
         st.success("🎉 Instructional design process completed successfully without final assessment.")
         return
@@ -546,7 +552,7 @@ def create_final_assessment():
         f"Ensure questions align with the course objectives and learning content.\n"
         f"Do not add any explanation text or headings before or after the questions."
     )
-    assessment = get_openai_response(prompt, max_completion_tokens=1500)
+    assessment = get_openai_response(prompt, max_completion_tokens=4500)
 
     if assessment:
         st.markdown("### Final Assessment")
