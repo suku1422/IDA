@@ -214,6 +214,7 @@ def analyze_content():
             analysis = get_openai_response(prompt)
             st.session_state.analysis = analysis
             st.session_state.analysis_done = True
+            st.session_state.uploaded_content = raw_text
 
         st.subheader("Content Gap Analysis")
         st.write(st.session_state.analysis)
