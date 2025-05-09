@@ -486,6 +486,9 @@ def generate_storyboard():
 
 # Step 5: Create Final Assessment
 import re
+from docx import Document
+from io import BytesIO
+
 
 def create_final_assessment():
     st.header("Step 5: Create Final Assessment")
@@ -497,7 +500,18 @@ def create_final_assessment():
         st.error("Missing context summary or content outline. Please complete earlier steps.")
         return
 
-    # Helper 1: Check if assessment needed
+    # Ask user if they want to generate the final assessment
+    proceed = st.radio(
+        "Do you want to generate the final assessment?",
+        ("Yes, generate assessment", "No, finish here"),
+        index=0
+    )
+
+    if proceed == "No, finish here":
+        st.success("🎉 Instructional design process completed successfully without final assessment.")
+        return
+
+   # Helper 1: Check if assessment needed
     def context_mentions_assessment(summary):
         summary = summary.lower()
         return "final assessment" in summary and "yes" in summary
@@ -534,33 +548,38 @@ def create_final_assessment():
         if not num_questions:
             num_questions = estimate_questions_from_duration(context_summary)
 
-        # 🔔 Carefully updated PROMPT (called out):
-        prompt = (
-            f"Based on the following instructional design context and content outline, generate a final assessment "
-            f"for this e-learning course.\n\n"
-            f"### Instructional Design Context:\n{context_summary}\n\n"
-            f"### Content Outline:\n{content_outline}\n\n"
-            f"Create {num_questions} multiple-choice questions.\n"
-            f"Each MCQ must have appropriate number of answer options, and should clearly indicate the correct option.\n"
-            f"Ensure questions align with the course objectives and learning content.\n"
-            f"Do not add any explanation text or headings before or after the questions."
+    prompt = (
+        f"Based on the following instructional design context and content outline, generate a final assessment for this e-learning course.\n\n"
+        f"### Instructional Design Context:\n{context_summary}\n\n"
+        f"### Content Outline:\n{content_outline}\n\n"
+        f"Create {num_questions} multiple-choice questions.\n"
+        f"Each MCQ must have appropriate number of answer options, and should clearly indicate the correct option.\n"
+        f"Ensure questions align with the course objectives and learning content.\n"
+        f"Do not add any explanation text or headings before or after the questions."
+    )
+    assessment = get_openai_response(prompt, max_completion_tokens=1500)
+
+    if assessment:
+        st.markdown("### Final Assessment")
+        st.write(assessment)
+
+        # Export to Word document
+        doc = Document()
+        doc.add_heading('Final Assessment', 0)
+        doc.add_paragraph(assessment)
+
+        buffer = BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+
+        st.download_button(
+            label="📥 Download as Word Document",
+            data=buffer,
+            file_name="final_assessment.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
-
-        assessment = get_openai_response(prompt, max_completion_tokens=1500)
-        if assessment:
-            st.session_state.final_assessment = assessment
-            st.subheader("Generated Final Assessment")
-            st.code(assessment)
-
-            with st.form("approve_assessment_form"):
-                approved = st.form_submit_button("Approve Final Assessment", type="primary")
-                if approved:
-                    st.success("🎉 Instructional design process completed successfully!")
-        else:
-            st.error("Failed to generate final assessment. Please retry.")
     else:
-        st.success("🎉 Instructional design process completed successfully!")
-
+        st.error("Failed to generate final assessment. Please retry.")
 
 
 # Main Application Flow
