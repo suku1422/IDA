@@ -505,7 +505,7 @@ def create_final_assessment():
         submitted = st.form_submit_button("Continue")
     
     if not submitted:
-    st.stop()
+        st.stop()
     
       
     if proceed == "No, finish here":
