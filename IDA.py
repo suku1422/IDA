@@ -201,7 +201,7 @@ def analyze_content():
             st.error(f"Error reading uploaded file: {e}")
             return
 
-        if "raw_text" not in st.session_state or st.session_state.raw_text != raw_text:
+        if "analysis_done" not in st.session_state or st.session_state.raw_text != raw_text:
             st.session_state.raw_text = raw_text
             context_summary = st.session_state.get("context_summary", "No context summary available.")
             prompt = (
@@ -213,6 +213,7 @@ def analyze_content():
             )
             analysis = get_openai_response(prompt)
             st.session_state.analysis = analysis
+            st.session_state.analysis_done = True
 
         st.subheader("Content Gap Analysis")
         st.write(st.session_state.analysis)
@@ -257,8 +258,6 @@ def analyze_content():
                 st.rerun()
     else:
         st.info("Please upload at least one raw content file to begin analysis.")
-
-
 
 
 
