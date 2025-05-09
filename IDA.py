@@ -98,7 +98,7 @@ def gather_context():
                         + "\n\nBased on the context gathered, ask the next most relevant question needed to design the course. "
                         "There is a limit of 6 questions, so prioritize the most important ones."
                     )
-                    with st.spinner("Thinking what else do I need to know..."):
+                    with st.spinner("Thinking what else do we need to know..."):
                         next_question = get_openai_response(prompt)
                         if next_question:
                             st.session_state.current_question = next_question
@@ -382,7 +382,7 @@ def generate_storyboard():
             f"Do not add any explanation before or after the table. Each row must be properly formatted without bullets or other formatting."
         )
 
-        with st.spinner("Generating storyboard..."):
+        with st.spinner("Generating storyboard. This may take a while..."):
             storyboard = get_openai_response(prompt, max_completion_tokens=20000)
             if storyboard:
                 st.session_state.storyboard = storyboard
@@ -492,6 +492,10 @@ from docx import Document
 from io import BytesIO
 
 def create_final_assessment():
+    if st.session_state.get("assessment_downloaded"):
+        st.success("🎉 Instructional design process completed successfully!")
+        return
+    
     st.header("Step 5: Create Final Assessment")
 
     context_summary = st.session_state.get("context_summary_persisted", "")
@@ -543,7 +547,7 @@ def create_final_assessment():
             else:
                 return 15
         else:
-            return 8  # fallback default
+            return 7  # fallback default
 
     num_questions = extract_num_questions(context_summary)
     if not num_questions:
@@ -584,6 +588,7 @@ def create_final_assessment():
         if downloaded:
             st.success("🎉 Instructional design process completed successfully!")
             st.session_state.step = None
+            st.rerun
         
     else:
         st.error("Failed to generate final assessment. Please retry.")
@@ -606,7 +611,7 @@ def main():
     elif st.session_state.step == 5:
         create_final_assessment()
     else:
-        st.write("Unknown step.")
+        st.write("All steps completed. Thank you for using the Instructional Design Agent!")
 
 if __name__ == "__main__":
     main()
