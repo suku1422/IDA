@@ -98,7 +98,7 @@ def gather_context():
                         + "\n\nBased on the context gathered, ask the next most relevant question needed to design the course. "
                         "There is a limit of 6 questions, so prioritize the most important ones."
                     )
-                    with st.spinner("Generating next question..."):
+                    with st.spinner("Thinking what else do I need to know..."):
                         next_question = get_openai_response(prompt)
                         if next_question:
                             st.session_state.current_question = next_question
@@ -414,7 +414,7 @@ def generate_storyboard():
             st.dataframe(df, use_container_width=True)
 
         except Exception:
-            st.error("Could not render storyboard as table. Showing raw text.")
+            st.error("Could not render storyboard as a table here. Showing raw text instead. Don't worry, export to word and it will be fine")
             st.code(st.session_state.storyboard)
 
             
@@ -574,16 +574,17 @@ def create_final_assessment():
         doc.save(buffer)
         buffer.seek(0)
 
-        st.download_button(
+        downloaded = st.download_button(
             label="📥 Download as Word Document",
             data=buffer,
             file_name="final_assessment.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
     
-        st.success("🎉 Instructional design process completed successfully!")
-        st.session_state.step = None
-                
+        if downloaded:
+            st.success("🎉 Instructional design process completed successfully!")
+            st.session_state.step = None
+        
     else:
         st.error("Failed to generate final assessment. Please retry.")
         st.error("Failed to generate final assessment. Please retry.")
