@@ -167,7 +167,6 @@ def gather_context():
 
 # Step 2: Analyze Raw Content
 import re
-from your_module import get_openai_response
 from docx import Document
 from io import BytesIO
 
