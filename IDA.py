@@ -1,6 +1,6 @@
 import logging
 import os
-from src.auth import process_google_login, get_google_auth_url
+# from src.auth import process_google_login, get_google_auth_url
 from src.db_manager import init_db, get_user_projects
 from src.components.context_gatherer import gather_context
 from src.components.content_analyzer import analyze_content
@@ -105,4 +105,5 @@ def main():
                     st.warning("Please provide a project title to continue.")
 
 if __name__ == "__main__":
+
     main()
